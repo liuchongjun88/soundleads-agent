@@ -3,56 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundLeads Agent - 全球喇叭制造商客户开发</title>
+    <title>SoundLeads Agent - 喇叭模组客户开发</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; background: #f5f6fa; color: #1e293b; }
         .container { max-width: 900px; margin: 0 auto; }
-        input, select, button { padding: 10px 14px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
+        input, select, button, textarea { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
         button { background: #1a56db; color: #fff; cursor: pointer; border: none; }
-        .btn-all { background: #f59e0b; }
+        .btn-live { background: #10b981; } .btn-db { background: #f59e0b; } .btn-import { background: #7c3aed; }
         .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin: 8px 0; cursor: pointer; }
         .card:hover { border-color: #1a56db; }
-        #toast { position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; display: none; }
         .detail { background: #f8f9fc; padding: 16px; border-radius: 8px; margin-top: 16px; }
+        #toast { position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; display: none; }
+        .section { margin: 16px 0; }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>🔊 SoundLeads Agent</h1>
-    <p>已内置 20 家全球知名扬声器/喇叭单元制造商。可在搜索框中输入公司名或产品关键词过滤，或点击“显示全部制造商”。</p>
-    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-        <input type="text" id="keywords" placeholder="输入公司名或关键词，如 visaton 或 喇叭" style="flex:2;">
-        <button id="searchBtn">🔍 搜索</button>
-        <button id="showAllBtn" class="btn-all">📋 显示全部制造商</button>
+    <p>实时搜索全球喇叭制造商 | 内置核心客户库 | 手动导入客户</p>
+    <div class="section">
+        <input type="text" id="keywords" placeholder="实时搜索，如 speaker manufacturer Germany" value="speaker manufacturer" style="width:70%;">
+        <button id="liveSearchBtn" class="btn-live">🌐 实时搜索</button>
+        <button id="showDbBtn" class="btn-db">📋 内置数据库</button>
     </div>
+    <div class="section">
+        <details>
+            <summary style="cursor:pointer; font-weight:bold;">📥 手动导入客户 (JSON格式)</summary>
+            <textarea id="importArea" rows="4" placeholder='[{"company":"公司名","industry":"行业","country":"国家","need":"需求","url":"网址"}]' style="width:100%;"></textarea>
+            <button id="importBtn" class="btn-import">导入到当前列表</button>
+        </details>
+    </div>
+    <div id="log" style="font-size:12px;color:#666;margin:8px 0;"></div>
     <div id="results"></div>
 </div>
 <div id="toast"></div>
 
 <script>
-    // 内置全球喇叭制造商数据库（无需任何后端）
+    // 内置数据库
     var supplierDB = [
         {company:"Visaton GmbH & Co. KG",industry:"喇叭单元制造",country:"德国",need:"全频及高音喇叭单元",url:"https://www.visaton.de"},
         {company:"Tymphany (Peerless)",industry:"电声器件制造",country:"美国/丹麦",need:"高保真音响喇叭单元",url:"https://www.tymphany.com"},
-        {company:"SB Acoustics",industry:"发烧音响喇叭制造",country:"印度尼西亚",need:"Hi-Fi扬声器单元",url:"https://www.sbacoustics.com"},
-        {company:"SEAS Fabrikker",industry:"高级扬声器单元制造",country:"挪威",need:"精密高音及中低音单元",url:"https://www.seas.no"},
-        {company:"Scan-Speak A/S",industry:"高端喇叭单元制造",country:"丹麦",need:"发烧级扬声器驱动器",url:"https://www.scan-speak.dk"},
-        {company:"Wavecor Ltd.",industry:"专业喇叭单元设计",country:"英国",need:"定制化扬声器驱动器",url:"https://www.wavecor.co.uk"},
-        {company:"FaitalPRO",industry:"专业音响喇叭制造",country:"意大利",need:"PA及演出用喇叭单元",url:"https://www.faitalpro.com"},
         {company:"B&C Speakers",industry:"专业扬声器制造",country:"意大利",need:"高功率压缩驱动器",url:"https://www.bcspeakers.com"},
-        {company:"Eighteen Sound",industry:"专业音频喇叭制造",country:"意大利",need:"顶尖号角及低音单元",url:"https://www.eighteensound.com"},
-        {company:"P-Audio System",industry:"专业扬声器制造",country:"泰国",need:"全系列PA喇叭单元",url:"https://www.paudiothailand.com"},
         {company:"Celestion",industry:"乐器及专业喇叭制造",country:"英国",need:"吉他扬声器及专业驱动头",url:"https://celestion.com"},
         {company:"Eminence Speaker",industry:"乐器及音响喇叭制造",country:"美国",need:"吉他贝斯扬声器",url:"https://www.eminence.com"},
-        {company:"Jensen Loudspeakers",industry:"乐器喇叭制造",country:"意大利",need:"经典吉他喇叭单元",url:"https://www.jensentone.com"},
-        {company:"Fostex Company",industry:"专业电声部件制造",country:"日本",need:"全频单元及录音室喇叭",url:"https://www.fostexinternational.com"},
-        {company:"Mundorf EB GmbH",industry:"高保真组件及喇叭制造",country:"德国",need:"分频器及HI-FI喇叭",url:"https://www.mundorf.com"},
-        {company:"Morel",industry:"汽车及家庭影院喇叭制造",country:"以色列",need:"超薄喇叭单元",url:"https://www.morelhifi.com"},
-        {company:"Dynaudio A/S",industry:"高端扬声器系统与单元",country:"丹麦",need:"发烧级及专业监听喇叭",url:"https://www.dynaudio.com"},
-        {company:"Focal JMlab",industry:"高保真音响及单元制造",country:"法国",need:"W Cone及铍高音单元",url:"https://www.focal.com"},
-        {company:"Adam Audio GmbH",industry:"专业监听音箱与单元",country:"德国",need:"X-ART气动高音及低音",url:"https://www.adam-audio.com"},
-        {company:"ATC Loudspeaker Technology",industry:"专业监听及Hi-Fi喇叭制造",country:"英国",need:"高解析度中音及低音单元",url:"https://atc.audio"}
+        {company:"SEAS Fabrikker",industry:"高级扬声器单元制造",country:"挪威",need:"精密高音及中低音单元",url:"https://www.seas.no"}
     ];
+    // 当前显示的数据集（可以混合内置和导入的）
+    var currentLeads = supplierDB.slice();
+
+    var API_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec';
 
     function showToast(msg) {
         var t = document.getElementById('toast');
@@ -63,19 +62,18 @@
 
     function renderCards(companies) {
         var resultsDiv = document.getElementById('results');
-        if (companies.length === 0) {
-            resultsDiv.innerHTML = '<p>未找到匹配的制造商。</p>';
+        if (!companies || companies.length === 0) {
+            resultsDiv.innerHTML = '<p>暂无客户数据。</p>';
             return;
         }
         var html = '';
         companies.forEach(function(c) {
-            html += '<div class="card" onclick="showDetail(this)" data-company="' + c.company + '" data-industry="' + c.industry + '" data-country="' + c.country + '" data-need="' + c.need + '" data-url="' + c.url + '">' +
-                '<strong>' + c.company + '</strong><br>' +
+            html += '<div class="card" onclick="showDetail(this)" data-company="' + c.company + '" data-industry="' + c.industry + '" data-country="' + c.country + '" data-need="' + c.need + '" data-url="' + (c.url||'') + '">' +
+                '<strong>' + c.company + '</strong> (' + (c.score||'') + '分)<br>' +
                 '🏭 ' + c.industry + ' · 📍 ' + c.country + '<br>' +
-                '📋 需要: ' + c.need + '</div>';
+                '📋 ' + c.need + '</div>';
         });
         resultsDiv.innerHTML = html;
-        showToast('✅ 共 ' + companies.length + ' 家制造商');
     }
 
     function showDetail(card) {
@@ -84,46 +82,76 @@
         var country = card.dataset.country;
         var need = card.dataset.need;
         var url = card.dataset.url;
-        var detailHtml = '<div class="detail">' +
-            '<h2>' + company + '</h2>' +
+        var detailHtml = '<div class="detail"><h2>' + company + '</h2>' +
             '<p><strong>行业：</strong>' + industry + '<br>' +
             '<strong>国家：</strong>' + country + '<br>' +
             '<strong>需求产品：</strong>' + need + '<br>' +
-            '<strong>网站：</strong><a href="' + url + '" target="_blank">' + url + '</a></p>' +
+            (url ? '<strong>网站：</strong><a href="' + url + '" target="_blank">' + url + '</a>' : '') + '</p>' +
             '<button onclick="showToast(\'开发信已发送至测试邮箱\')">📧 发送开发信</button> ' +
-            '<button onclick="backToList()">返回列表</button>' +
-            '</div>';
+            '<button onclick="backToList()">返回列表</button></div>';
         document.getElementById('results').innerHTML = detailHtml;
     }
 
-    function backToList() {
-        renderCards(supplierDB);
+    function backToList() { renderCards(currentLeads); }
+
+    function showDatabase() {
+        currentLeads = supplierDB.slice();
+        renderCards(currentLeads);
+        document.getElementById('log').textContent = '显示了内置数据库 ' + currentLeads.length + ' 家制造商';
     }
 
-    function doSearch() {
-        var keyword = document.getElementById('keywords').value.trim().toLowerCase();
-        if (!keyword) {
-            showToast('请输入关键词');
-            return;
+    function liveSearch() {
+        var keywords = document.getElementById('keywords').value.trim();
+        if (!keywords) { showToast('请输入搜索关键词'); return; }
+        var logDiv = document.getElementById('log');
+        logDiv.textContent = '🌐 正在实时搜索...';
+        document.getElementById('liveSearchBtn').disabled = true;
+
+        fetch(API_URL + '?keyword=' + encodeURIComponent(keywords))
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success && data.leads && data.leads.length > 0) {
+                    currentLeads = data.leads;
+                    showToast('✅ 实时搜索找到 ' + data.leads.length + ' 条结果');
+                    renderCards(currentLeads);
+                    logDiv.textContent = '✅ 实时搜索完成，共 ' + data.leads.length + ' 条结果';
+                } else {
+                    logDiv.textContent = '⚠️ 实时搜索无结果，请尝试其他关键词';
+                    document.getElementById('results').innerHTML = '<p>未找到结果，请尝试更通用的英文关键词（如 speaker module）</p>';
+                }
+            })
+            .catch(function(e) {
+                logDiv.textContent = '❌ 请求失败：' + e.message;
+                showToast('网络错误');
+            })
+            .finally(function() {
+                document.getElementById('liveSearchBtn').disabled = false;
+            });
+    }
+
+    function importCustomers() {
+        var text = document.getElementById('importArea').value.trim();
+        if (!text) { showToast('请粘贴 JSON 格式客户数据'); return; }
+        try {
+            var imported = JSON.parse(text);
+            if (!Array.isArray(imported)) throw new Error('必须是数组');
+            // 合并到当前列表
+            currentLeads = currentLeads.concat(imported);
+            renderCards(currentLeads);
+            document.getElementById('importArea').value = '';
+            showToast('✅ 成功导入 ' + imported.length + ' 个客户');
+            document.getElementById('log').textContent = '当前共有 ' + currentLeads.length + ' 个客户';
+        } catch(e) {
+            showToast('JSON 格式错误，请检查');
         }
-        var filtered = supplierDB.filter(function(c) {
-            return c.company.toLowerCase().indexOf(keyword) !== -1 ||
-                   c.need.toLowerCase().indexOf(keyword) !== -1 ||
-                   c.industry.toLowerCase().indexOf(keyword) !== -1 ||
-                   c.country.toLowerCase().indexOf(keyword) !== -1;
-        });
-        renderCards(filtered);
-    }
-
-    function showAll() {
-        renderCards(supplierDB);
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('searchBtn').addEventListener('click', doSearch);
-        document.getElementById('showAllBtn').addEventListener('click', showAll);
-        // 页面加载后自动显示所有制造商，这样你打开页面就看到数据了
-        showAll();
+        document.getElementById('showDbBtn').addEventListener('click', showDatabase);
+        document.getElementById('liveSearchBtn').addEventListener('click', liveSearch);
+        document.getElementById('importBtn').addEventListener('click', importCustomers);
+        // 默认显示内置数据库
+        showDatabase();
     });
 </script>
 </body>
