@@ -156,7 +156,48 @@
         }
 
         // ==================== AI Agent 模拟搜索 ====================
-        function startAgentSearch(){
+        // 真实 API 搜索
+async function startAgentSearch() {
+  const keywords = document.getElementById('keywordsInput').value;
+  const industry = document.getElementById('industrySelect').value;
+  const region = document.getElementById('regionSelect').value;
+  if (!keywords) return showToast('请输入产品关键词');
+
+  const logDiv = document.getElementById('agentLog');
+  const logContent = document.getElementById('logContent');
+  const progressFill = document.getElementById('progressFill');
+  logDiv.style.display = 'block';
+  logContent.innerHTML = `<div>🔍 正在调用真实搜索 API...</div>`;
+  progressFill.style.width = '30%';
+  document.getElementById('startAgentBtn').disabled = true;
+
+  const apiUrl = '你的Web应用网址'; // 替换为第二阶段部署得到的网址
+  const params = new URLSearchParams({ keyword: keywords, industry: industry, region: region });
+
+  try {
+    const response = await fetch(`${apiUrl}?${params.toString()}`);
+    const data = await response.json();
+    if (data.success && data.leads) {
+      agentFoundLeads = data.leads.map((l, idx) => ({
+        ...l,
+        id: Date.now() + idx,
+        status: l.score >= 80 ? 'hot' : 'warm',
+        stage: 'new',
+        customs: [] // 结构化占位，后续可扩展
+      }));
+      logContent.innerHTML += `<div>✅ 搜索完成！从 Google 获取 ${data.leads.length} 条线索</div>`;
+      progressFill.style.width = '100%';
+      showToast(`✅ 真实搜索完成！发现 ${data.leads.length} 条线索`);
+    } else {
+      logContent.innerHTML += `<div>⚠️ 未获取到结果，请检查配置或更换关键词</div>`;
+    }
+  } catch (error) {
+    logContent.innerHTML += `<div>❌ 请求失败：${error.message}</div>`;
+  }
+  
+  document.getElementById('startAgentBtn').disabled = false;
+  renderAgentResults();
+}{
             const keywords = document.getElementById('keywordsInput').value;
             const industry = document.getElementById('industrySelect').value;
             const region = document.getElementById('regionSelect').value;
