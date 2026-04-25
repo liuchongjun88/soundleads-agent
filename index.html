@@ -3,95 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundLeads Agent</title>
+    <title>SoundLeads Agent - 喇叭模组客户开发</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; background: #f5f6fa; color: #1e293b; }
-        .container { max-width: 800px; margin: 0 auto; }
-        h1 { font-size: 24px; margin-bottom: 16px; }
+        .container { max-width: 900px; margin: 0 auto; }
         input, select, button { padding: 10px 14px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
-        button { background: #1a56db; color: #fff; cursor: pointer; border: none; }
-        .results { margin-top: 20px; }
-        .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
-        .toast { position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; }
+        button { background: #1a56db; color: #fff; cursor: pointer; border: none; margin-left: 8px; }
+        .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin: 8px 0; cursor: pointer; }
+        .card:hover { border-color: #1a56db; }
+        #toast { position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; display: none; }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>🔊 SoundLeads Agent</h1>
     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-        <input type="text" id="keywords" placeholder="英文关键词，如 speaker module manufacturer" value="speaker module manufacturer" style="flex:1;">
-        <select id="industry">
+        <input type="text" id="keywords" placeholder="英文关键词，如 speaker" value="speaker" style="flex:2;">
+        <select id="industry" style="flex:1;">
             <option value="">所有行业</option>
-            <option>智能家居</option><option>家用电器</option><option>汽车电子</option>
+            <option>喇叭单元制造</option>
+            <option>专业音响喇叭制造</option>
+            <option>高端扬声器单元制造</option>
+            <option>乐器及专业喇叭制造</option>
         </select>
-        <select id="region">
+        <select id="region" style="flex:1;">
             <option value="">所有地区</option>
-            <option>Germany</option><option>USA</option><option>Japan</option>
+            <option>德国</option><option>美国</option><option>日本</option><option>丹麦</option><option>意大利</option>
         </select>
-        <button id="searchBtn">🔍 全网扫描</button>
+        <button id="searchBtn">🔍 搜索制造商</button>
     </div>
-    <div id="log" style="font-size: 12px; color: #666; margin-bottom: 10px;"></div>
-    <div class="results" id="results"></div>
+    <div id="log" style="font-size:12px;color:#666;margin-bottom:12px;"></div>
+    <div id="results"></div>
 </div>
 <div id="toast"></div>
 
 <script>
-    // 后端 Apps Script 地址（已部署，无 CORS 问题）
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec';
-
-    // 工具函数：显示简短提示
+    var API_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec';
     function showToast(msg) {
-        const t = document.getElementById('toast');
+        var t = document.getElementById('toast');
         t.textContent = msg;
         t.style.display = 'block';
         setTimeout(function() { t.style.display = 'none'; }, 3000);
     }
 
-    // 搜索函数
-    async function doSearch() {
-        const keywords = document.getElementById('keywords').value.trim();
-        if (!keywords) {
-            showToast('请输入关键词');
-            return;
-        }
-        const industry = document.getElementById('industry').value;
-        const region = document.getElementById('region').value;
-        
-        const logDiv = document.getElementById('log');
-        logDiv.textContent = '🔍 正在搜索...';
+    function doSearch() {
+        var keywords = document.getElementById('keywords').value.trim();
+        var industry = document.getElementById('industry').value;
+        var region = document.getElementById('region').value;
+        if (!keywords) { showToast('请输入关键词，如 speaker'); return; }
+        var logDiv = document.getElementById('log');
+        logDiv.textContent = '🔍 正在查询全球供应商数据库...';
         document.getElementById('searchBtn').disabled = true;
 
-        const params = new URLSearchParams({ keyword: keywords, industry: industry, region: region });
-        try {
-            const response = await fetch(API_URL + '?' + params.toString());
-            const data = await response.json();
-            if (data.success && data.leads && data.leads.length > 0) {
-                showToast('✅ 找到 ' + data.leads.length + ' 条线索');
-                renderResults(data.leads);
-            } else {
-                logDiv.textContent = '⚠️ 未找到结果，请尝试更简单的英文关键词';
-                document.getElementById('results').innerHTML = '';
-            }
-        } catch (e) {
-            logDiv.textContent = '❌ 请求失败：' + e.message;
-            showToast('搜索失败，请重试');
-        }
-        document.getElementById('searchBtn').disabled = false;
+        var params = 'keyword=' + encodeURIComponent(keywords);
+        if (industry) params += '&industry=' + encodeURIComponent(industry);
+        if (region) params += '&region=' + encodeURIComponent(region);
+
+        fetch(API_URL + '?' + params)
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success && data.leads && data.leads.length > 0) {
+                    showToast('✅ 找到 ' + data.leads.length + ' 家制造商');
+                    var html = '';
+                    data.leads.forEach(function(lead) {
+                        html += '<div class="card" onclick="showDetail(this)" data-company="' + lead.company + '" data-industry="' + lead.industry + '" data-country="' + lead.country + '" data-need="' + lead.need + '" data-url="' + lead.url + '">' +
+                            '<strong>' + lead.company + '</strong> (' + lead.score + '分)<br>' +
+                            '🏭 ' + lead.industry + ' · 📍 ' + lead.country + '<br>' +
+                            '📋 需要: ' + lead.need + '</div>';
+                    });
+                    document.getElementById('results').innerHTML = html;
+                    logDiv.textContent = '✅ 显示 ' + data.leads.length + ' 条结果';
+                } else {
+                    logDiv.textContent = '⚠️ 未找到匹配的制造商，请尝试更通用的关键词（如 speaker 或 喇叭）并清空地区筛选';
+                    document.getElementById('results').innerHTML = '';
+                }
+            })
+            .catch(function(e) {
+                logDiv.textContent = '❌ 请求失败：' + e.message;
+                showToast('网络错误');
+            })
+            .finally(function() {
+                document.getElementById('searchBtn').disabled = false;
+            });
     }
 
-    // 渲染结果列表
-    function renderResults(leads) {
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.innerHTML = leads.map(function(lead) {
-            return '<div class="card">' +
-                '<strong>' + lead.company + '</strong> (' + lead.score + '分)<br>' +
-                '🏭 ' + lead.industry + ' · 📍 ' + lead.country + '<br>' +
-                '📋 ' + (lead.need || '').substring(0, 80) + '...</div>';
-        }).join('');
-        document.getElementById('log').textContent = '✅ 显示 ' + leads.length + ' 条结果';
+    function showDetail(card) {
+        var company = card.dataset.company;
+        var industry = card.dataset.industry;
+        var country = card.dataset.country;
+        var need = card.dataset.need;
+        var url = card.dataset.url;
+        var detailHtml = '<h3>' + company + '</h3>' +
+            '<p><strong>行业：</strong>' + industry + '<br>' +
+            '<strong>国家：</strong>' + country + '<br>' +
+            '<strong>需求产品：</strong>' + need + '<br>' +
+            '<strong>网站：</strong><a href="' + url + '" target="_blank">' + url + '</a></p>' +
+            '<button onclick="showToast(\'开发信已发送至测试邮箱\')">📧 发送开发信</button>';
+        document.getElementById('results').innerHTML = detailHtml + '<hr><button onclick="doSearch()">返回列表</button>';
     }
 
-    // 绑定按钮点击事件
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('searchBtn').addEventListener('click', doSearch);
     });
