@@ -65,7 +65,7 @@
             <button class="nav-item" data-view="dashboard"><span>📊</span> 仪表盘</button>
         </nav>
         <div style="padding:16px;border-top:1px solid var(--border-light);font-size:12px;color:var(--text-muted);">
-            ⚡ CORS代理 + SearXNG · 完全免费
+            ⚡ DuckDuckGo API · 无需密钥 · 完全免费
         </div>
     </aside>
 
@@ -79,33 +79,35 @@
         </header>
 
         <div class="content-area">
-            <!-- Agent 视图 -->
             <div id="view-agent" class="view-panel">
                 <div class="agent-config" style="background:var(--surface);padding:16px;border-radius:var(--radius-lg);">
                     <span style="font-weight:600;">🎯 搜索配置</span>
-                    <input type="text" id="keywordsInput" placeholder="产品关键词，如: 喇叭模组, DSP控制板" value="喇叭模组, 防水蜂鸣器, DSP音频控制板" style="flex:2;">
+                    <input type="text" id="keywordsInput" placeholder="产品关键词" value="speaker module manufacturer" style="flex:2;">
                     <select id="industrySelect" style="flex:1;">
+                        <option value="">所有行业</option>
                         <option>智能家居/智能音箱</option><option>家用电器</option><option>汽车电子</option>
                         <option>安防监控</option><option>医疗器械</option><option>消费电子</option>
                     </select>
                     <select id="regionSelect" style="flex:1;">
-                        <option>美国</option><option>德国</option><option>日本</option><option>韩国</option><option>英国</option>
+                        <option value="">所有地区</option>
+                        <option>China</option><option>Germany</option><option>Japan</option>
+                        <option>Korea</option><option>UK</option><option>USA</option>
                     </select>
                     <button class="btn btn-primary btn-sm" id="manualSearchBtn">🔍 全网扫描</button>
                 </div>
-                <div id="agentLog" style="background:#1e293b;color:#e2e8f0;border-radius:var(--radius);padding:16px;font-family:monospace;font-size:12px;min-height:120px;display:none;margin-bottom:16px;">
+                <div id="agentLog" style="background:#1e293b;color:#e2e8f0;border-radius:var(--radius);padding:16px;font-family:monospace;font-size:12px;min-height:80px;display:none;margin-bottom:16px;">
                     <div id="logContent"></div>
-                    <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" id="progressFill"></div></div>
+                    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
                 </div>
                 <div class="two-col">
                     <div class="panel">
                         <div class="panel-header"><span>🆕 新发现线索 (<span id="foundCount">0</span>)</span></div>
                         <div class="panel-body" id="agentResultsContainer">
-                            <div style="color:var(--text-muted);text-align:center;padding:40px;">点击“全网扫描”开始搜索</div>
+                            <div style="color:var(--text-muted);text-align:center;padding:40px;">点击"全网扫描"开始搜索</div>
                         </div>
                     </div>
                     <div class="panel">
-                        <div class="panel-header"><span>📝 线索详情预览</span></div>
+                        <div class="panel-header"><span>📝 线索详情</span></div>
                         <div class="detail-panel" id="agentDetail">
                             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);">👈 点击左侧线索查看</div>
                         </div>
@@ -113,7 +115,6 @@
                 </div>
             </div>
 
-            <!-- 管道视图 -->
             <div id="view-pipeline" class="view-panel hidden">
                 <div class="stats-grid" id="funnelStats"></div>
                 <div style="margin-bottom:12px;">
@@ -121,51 +122,36 @@
                     <span class="btn btn-outline btn-xs" onclick="setFilter('new')">新线索</span>
                     <span class="btn btn-outline btn-xs" onclick="setFilter('contacted')">已联系</span>
                     <span class="btn btn-outline btn-xs" onclick="setFilter('quotation')">报价中</span>
-                    <span class="btn btn-outline btn-xs" onclick="setFilter('sample')">样品</span>
-                    <span class="btn btn-outline btn-xs" onclick="setFilter('negotiation')">谈判</span>
                 </div>
                 <div class="two-col">
-                    <div class="panel">
-                        <div class="panel-header"><span>客户列表 (<span id="leadCount">0</span>)</span></div>
-                        <div class="panel-body" id="leadListContainer"></div>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-header"><span>客户详情</span></div>
-                        <div class="detail-content" id="detailContent"></div>
-                    </div>
+                    <div class="panel"><div class="panel-header"><span>客户列表 (<span id="leadCount">0</span>)</span></div><div class="panel-body" id="leadListContainer"></div></div>
+                    <div class="panel"><div class="panel-header"><span>客户详情</span></div><div class="detail-content" id="detailContent"></div></div>
                 </div>
             </div>
 
-            <!-- 仪表盘 -->
             <div id="view-dashboard" class="view-panel hidden">
                 <div class="stats-grid">
                     <div class="stat-card"><div class="stat-value" id="totalLeads">0</div><div class="stat-label">总客户数</div></div>
-                    <div class="stat-card"><div class="stat-value" id="overdueLeads">0</div><div class="stat-label">超期未跟进</div></div>
+                    <div class="stat-card"><div class="stat-value" id="hotLeads">0</div><div class="stat-label">高意向客户</div></div>
                 </div>
             </div>
         </div>
     </div>
-
     <div id="toastContainer"></div>
 
     <script>
-        // ==================== 全局变量 ====================
-        const SEARXNG_INSTANCE = 'https://searx.be'; // SearXNG 公共实例
-        const CORS_PROXY = 'https://corsproxy.io/?'; // 免费 CORS 代理
-
+        // ---- 数据 ----
         let leadsDB = [
-            {id:1,company:'Sonos Inc.',industry:'智能家居/智能音箱',country:'美国',contact:'John Miller',score:92,status:'hot',stage:'quotation',estValue:'$850K',need:'高品质动圈喇叭模组',source:'Agent搜索',contacts:[{name:'John Miller',title:'采购总监',email:'j.miller@sonos.com'}],customs:[],activities:[]},
-            {id:2,company:'Bosch Home Appliances',industry:'家用电器',country:'德国',contact:'Anna Schmidt',score:88,status:'hot',stage:'contacted',estValue:'$620K',need:'防水蜂鸣器模组',source:'海关数据',contacts:[{name:'Anna Schmidt',title:'供应链经理',email:'a.schmidt@bosch-home.com'}],customs:[],activities:[]},
-            {id:3,company:'Ring (Amazon)',industry:'智能家居/智能音箱',country:'美国',contact:'Mike Chen',score:95,status:'hot',stage:'sample',estValue:'$1.2M',need:'门铃喇叭模组+控制板',source:'Agent搜索',contacts:[{name:'Mike Chen',title:'硬件VP',email:'mike.chen@ring.com'}],customs:[],activities:[]}
+            {id:1,company:'Sonos Inc.',industry:'智能家居/智能音箱',country:'USA',contact:'John Miller',score:92,status:'hot',stage:'quotation',estValue:'$850K',need:'高品质动圈喇叭模组',source:'DuckDuckGo'},
+            {id:2,company:'Bosch Home Appliances',industry:'家用电器',country:'Germany',contact:'Anna Schmidt',score:88,status:'hot',stage:'contacted',estValue:'$620K',need:'防水蜂鸣器模组',source:'DuckDuckGo'}
         ];
         let agentFoundLeads = [];
         let currentFilter = 'all';
 
-        // ==================== 工具函数 ====================
         function showToast(msg){
             const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
             document.getElementById('toastContainer').appendChild(t);
-            setTimeout(()=>{t.remove();},3000);
+            setTimeout(()=>t.remove(),3000);
         }
 
         function switchView(view){
@@ -182,107 +168,92 @@
 
         function renderDashboard(){
             document.getElementById('totalLeads').textContent = leadsDB.length;
-            document.getElementById('overdueLeads').textContent = leadsDB.filter(l=>l.nextFollowUp && l.nextFollowUp < new Date().toISOString().split('T')[0]).length;
+            document.getElementById('hotLeads').textContent = leadsDB.filter(l=>l.status==='hot').length;
         }
 
-        // ==================== SearXNG + CORS 代理 搜索 ====================
+        // ---- DuckDuckGo 搜索（无需 API Key，支持 JSONP/JSON） ----
         async function startAgentSearch(){
-            const keywords = document.getElementById('keywordsInput').value;
+            const keywords = document.getElementById('keywordsInput').value.trim();
+            if(!keywords) return showToast('请输入产品关键词');
             const industry = document.getElementById('industrySelect').value;
             const region = document.getElementById('regionSelect').value;
-            if(!keywords) return showToast('请输入产品关键词');
 
             const logDiv = document.getElementById('agentLog');
             const logContent = document.getElementById('logContent');
             const progressFill = document.getElementById('progressFill');
-            logDiv.style.display = 'block';
-            logContent.innerHTML = `<div>🔍 正在通过 SearXNG + CORS 代理搜索...</div>`;
-            progressFill.style.width = '30%';
-            document.getElementById('startAgentBtn').disabled = true;
-            if(document.getElementById('manualSearchBtn')) document.getElementById('manualSearchBtn').disabled = true;
+            logDiv.style.display='block';
+            logContent.innerHTML='<div>🔍 正在通过 DuckDuckGo 搜索...</div>';
+            progressFill.style.width='30%';
 
-            const query = encodeURIComponent(`${keywords} ${industry} speaker module manufacturer OR supplier OR buyer`);
+            const query = [keywords, industry, region, 'supplier OR manufacturer OR buyer'].filter(Boolean).join(' ');
+            const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
 
             try {
-                const apiUrl = `${SEARXNG_INSTANCE}/search?format=json&q=${query}`;
-                const proxyUrl = CORS_PROXY + encodeURIComponent(apiUrl);
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
-                if (data.results && data.results.length > 0) {
-                    agentFoundLeads = parseSearxResults(data.results);
-                    logContent.innerHTML += `<div>✅ 搜索完成！获取到 ${agentFoundLeads.length} 条线索</div>`;
-                    progressFill.style.width = '100%';
+                const res = await fetch(url);
+                const data = await res.json();
+
+                // DuckDuckGo API 返回的结果结构：data.RelatedTopics 或 data.Results
+                let rawResults = [];
+                if (data.Results && data.Results.length) rawResults = data.Results;
+                else if (data.RelatedTopics) rawResults = data.RelatedTopics.filter(r=>r.Text && r.FirstURL);
+
+                if (rawResults.length) {
+                    agentFoundLeads = rawResults.slice(0,10).map((item,idx) => ({
+                        id: Date.now()+idx,
+                        company: extractCompany(item.Text || item.Result || ''),
+                        industry: industry || guessIndustry(item.Text||''),
+                        country: region || 'Unknown',
+                        contact:'', title:'', email:'',
+                        need: item.Text || item.Result || '',
+                        score: 60 + Math.floor(Math.random()*30),
+                        source: 'DuckDuckGo',
+                        customs:[], estValue:'', url: item.FirstURL || item.Icon?.URL || ''
+                    }));
+                    logContent.innerHTML += `<div>✅ 获取到 ${agentFoundLeads.length} 条线索</div>`;
+                    progressFill.style.width='100%';
                     showToast(`✅ 找到 ${agentFoundLeads.length} 个潜在客户`);
                 } else {
-                    logContent.innerHTML += `<div>⚠️ 未找到结果，请更换关键词试试</div>`;
+                    logContent.innerHTML += '<div>⚠️ 未找到结果，请尝试更具体的英文关键词</div>';
+                    showToast('未找到结果，建议使用英文关键词');
                 }
-            } catch (e) {
+            } catch(e) {
                 logContent.innerHTML += `<div>❌ 请求失败：${e.message}</div>`;
-                showToast('搜索失败，请检查网络或更换代理');
+                showToast('搜索失败，请稍后重试');
             }
             document.getElementById('startAgentBtn').disabled = false;
-            if(document.getElementById('manualSearchBtn')) document.getElementById('manualSearchBtn').disabled = false;
             renderAgentResults();
         }
 
-        function parseSearxResults(results) {
-            return results.map((item, index) => {
-                let title = item.title || '';
-                let snippet = item.content || item.snippet || '';
-                let url = item.url || '';
+        function extractCompany(text){
+            if(!text) return 'Unknown';
+            // 简单提取首句或首词作为公司名
+            const sentence = text.split('.')[0].split(' - ')[0].split(' | ')[0];
+            const words = sentence.split(' ');
+            return words.slice(0, Math.min(4, words.length)).join(' ');
+        }
 
-                let company = title.split(' - ')[0].split(' | ')[0].trim();
-                if (!company || company.length < 2) company = title.substring(0, 50);
-
-                let industry = '其他';
-                const text = (title + snippet).toLowerCase();
-                if (/speaker|driver|transducer|audio module/i.test(text)) industry = '喇叭/音频';
-                else if (/home|smart|iot/i.test(text)) industry = '智能家居';
-                else if (/auto|car|vehicle/i.test(text)) industry = '汽车电子';
-                else if (/medical|health/i.test(text)) industry = '医疗器械';
-                else if (/alarm|security/i.test(text)) industry = '安防';
-
-                let country = '未知';
-                try {
-                    const domain = new URL(url).hostname;
-                    if (domain.endsWith('.de')) country = '德国';
-                    else if (domain.endsWith('.co.uk') || domain.endsWith('.uk')) country = '英国';
-                    else if (domain.endsWith('.jp')) country = '日本';
-                    else if (domain.endsWith('.kr')) country = '韩国';
-                    else if (domain.endsWith('.com') || domain.endsWith('.us')) country = '美国';
-                } catch (e) {}
-
-                return {
-                    id: Date.now() + index,
-                    company: company,
-                    industry: industry,
-                    country: country,
-                    contact: '',
-                    title: '',
-                    email: '',
-                    need: title,
-                    score: Math.floor(Math.random() * 30 + 60),
-                    source: 'SearXNG全网搜索',
-                    customs: [],
-                    estValue: '',
-                    url: url
-                };
-            });
+        function guessIndustry(text){
+            const t = text.toLowerCase();
+            if(/speaker|driver|audio|transducer/.test(t)) return '喇叭/音频';
+            if(/home|smart|iot/.test(t)) return '智能家居';
+            if(/auto|car|vehicle/.test(t)) return '汽车电子';
+            if(/medical|health/.test(t)) return '医疗器械';
+            if(/alarm|security/.test(t)) return '安防';
+            return '其他';
         }
 
         function renderAgentResults(){
             const container = document.getElementById('agentResultsContainer');
             document.getElementById('foundCount').textContent = agentFoundLeads.length;
-            if(agentFoundLeads.length === 0){
-                container.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px;">暂无结果，请搜索</div>';
+            if(!agentFoundLeads.length){
+                container.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px;">暂无结果</div>';
                 return;
             }
             container.innerHTML = agentFoundLeads.map(l=>`
-                <div class="lead-card" onclick="selectAgentLead(${l.id})" id="agentCard${l.id}">
+                <div class="lead-card" onclick="selectAgentLead(${l.id})">
                     <div class="lead-top"><span class="company-name">${l.company}</span><span class="lead-score score-hot">${l.score}分</span></div>
-                    <div style="font-size:11px;color:var(--text-secondary);">📍 ${l.country} · 🏭 ${l.industry}</div>
-                    <div style="font-size:11px;">需求: ${l.need}</div>
-                    <div><span class="tag">来源: ${l.source}</span></div>
+                    <div style="font-size:11px;">📍 ${l.country} · 🏭 ${l.industry}</div>
+                    <div style="font-size:11px;">${l.need.slice(0,80)}...</div>
                 </div>`).join('');
         }
 
@@ -294,75 +265,53 @@
             detail.innerHTML = `
                 <div class="detail-content">
                     <h4>${lead.company}</h4>
-                    <div class="detail-section"><h5>基本信息</h5>
+                    <div class="detail-section"><h5>信息</h5>
                         <div class="detail-row"><span>行业</span><span>${lead.industry}</span></div>
-                        <div class="detail-row"><span>国家</span><span>${lead.country}</span></div>
-                        <div class="detail-row"><span>需求产品</span><span>${lead.need}</span></div>
-                        <div class="detail-row"><span>数据来源</span><span>${lead.source}</span></div>
-                        ${lead.url ? `<div class="detail-row"><span>网页链接</span><span style="font-size:11px;"><a href="${lead.url}" target="_blank">打开原文</a></span></div>` : ''}
+                        <div class="detail-row"><span>地区</span><span>${lead.country}</span></div>
+                        <div class="detail-row"><span>原始摘要</span><span style="font-size:11px;">${lead.need}</span></div>
                     </div>
-                    <button class="btn btn-primary btn-sm" onclick="addToPipeline(${id})">➕ 添加到客户管道</button>
+                    <button class="btn btn-primary btn-sm" onclick="addToPipeline(${id})">➕ 加入管道</button>
                 </div>`;
         }
 
         function addToPipeline(id){
-            const lead = agentFoundLeads.find(l=>l.id===id);
-            if(!lead) return;
-            if(leadsDB.some(l=>l.company===lead.company)) return showToast('该客户已在管道中');
-            leadsDB.push({
-                id: Date.now(), company:lead.company, industry:lead.industry, country:lead.country,
-                contact:'', title:'', score:lead.score, status:lead.score>=80?'hot':'warm',
-                stage:'new', estValue:lead.estValue || '待评估', need:lead.need, source:lead.source,
-                contacts:[], customs:[], activities:[], nextFollowUp:''
-            });
-            showToast(`✅ ${lead.company} 已加入管道`);
-            if(document.getElementById('view-pipeline') && !document.getElementById('view-pipeline').classList.contains('hidden')){
-                renderFunnelStats(); renderPipelineLeads();
-            }
+            const lead = agentFoundLeads.find(l=>l.id===id); if(!lead) return;
+            leadsDB.push({...lead, id:Date.now(), stage:'new', status:'warm', contacts:[], activities:[]});
+            showToast('✅ 已加入客户管道');
+            renderFunnelStats(); renderPipelineLeads();
         }
 
-        // ==================== 管道逻辑 ====================
         function renderFunnelStats(){
-            const stages = ['new','contacted','quotation','sample','negotiation','won'];
-            const names = {new:'新线索',contacted:'已联系',quotation:'报价中',sample:'样品',negotiation:'谈判',won:'成交'};
+            const stages = ['new','contacted','quotation'];
             document.getElementById('funnelStats').innerHTML = stages.map(s=>{
                 const count = leadsDB.filter(l=>l.stage===s).length;
-                return `<div class="stat-card"><div class="stat-value">${count}</div><div class="stat-label">${names[s]}</div></div>`;
+                return `<div class="stat-card"><div class="stat-value">${count}</div><div class="stat-label">${s}</div></div>`;
             }).join('');
             document.getElementById('pipeCount').textContent = leadsDB.length;
         }
 
         function renderPipelineLeads(filter='all'){
-            let filtered = [...leadsDB];
-            if(filter!=='all') filtered = filtered.filter(l=>l.stage===filter);
+            let filtered = filter==='all'?[...leadsDB]:leadsDB.filter(l=>l.stage===filter);
             document.getElementById('leadCount').textContent = filtered.length;
-            const container = document.getElementById('leadListContainer');
-            container.innerHTML = filtered.map(l=>`
+            document.getElementById('leadListContainer').innerHTML = filtered.map(l=>`
                 <div class="lead-card" onclick="selectPipelineLead(${l.id})">
-                    <div class="lead-top"><span class="company-name">${l.company}</span><span class="lead-score ${l.score>=80?'score-hot':l.score>=50?'score-warm':'score-cool'}">${l.score}分</span></div>
-                    <div style="font-size:11px;">${l.industry} · ${l.country} · ${l.estValue}</div>
-                    <div><span class="tag">${l.stage}</span></div>
+                    <div class="lead-top"><span class="company-name">${l.company}</span><span class="lead-score">${l.score}分</span></div>
+                    <div style="font-size:11px;">${l.industry} · ${l.country}</div>
                 </div>`).join('');
         }
 
         function selectPipelineLead(id){
             const lead = leadsDB.find(l=>l.id===id); if(!lead) return;
-            const detail = document.getElementById('detailContent');
-            detail.innerHTML = `
+            document.getElementById('detailContent').innerHTML = `
                 <h4>${lead.company}</h4>
-                <div class="detail-section"><h5>联系人</h5>${lead.contacts?.map(c=>`<div>${c.name} · ${c.title}<br>📧 ${c.email}</div>`).join('')||'无'}</div>
-                <div class="detail-section"><h5>海关数据</h5>${lead.customs?.map(c=>`<div style="font-size:11px;">${c.date} ${c.desc} ${c.val}</div>`).join('')||'无'}</div>
-                <button class="btn btn-primary btn-sm" onclick="showToast('开发信已发送至 ${lead.contacts?.[0]?.email}')">📧 发送开发信</button>
-            `;
+                <div class="detail-section"><h5>需求</h5><p>${lead.need}</p></div>
+                <button class="btn btn-primary btn-sm" onclick="showToast('开发信已模拟发送')">📧 发送开发信</button>`;
         }
 
         function setFilter(f){ currentFilter = f; renderPipelineLeads(f); }
 
-        // ==================== 事件绑定 ====================
         document.addEventListener('DOMContentLoaded', ()=>{
-            document.querySelectorAll('.nav-item').forEach(item=>{
-                item.addEventListener('click', ()=> switchView(item.dataset.view));
-            });
+            document.querySelectorAll('.nav-item').forEach(item=>item.addEventListener('click', ()=>switchView(item.dataset.view)));
             document.getElementById('startAgentBtn').addEventListener('click', startAgentSearch);
             document.getElementById('manualSearchBtn').addEventListener('click', startAgentSearch);
             switchView('agent');
