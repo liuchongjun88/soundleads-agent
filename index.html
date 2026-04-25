@@ -58,14 +58,14 @@
 </head>
 <body>
     <aside class="sidebar">
-        <div class="sidebar-header"><div class="logo-icon">🔊</div><div class="logo-text"><h3>SoundLeads Agent</h3><span>AI自动获客引擎</span></div></div>
+        <div class="sidebar-header"><div class="logo-icon">🔊</div><div class="logo-text"><h3>SoundLeads Agent</h3><span>免费自动获客引擎</span></div></div>
         <nav style="flex:1;padding-top:8px;">
             <button class="nav-item active" data-view="agent"><span>🤖</span> AI Agent 搜索</button>
             <button class="nav-item" data-view="pipeline"><span>📋</span> 客户管道 <span class="badge" id="pipeCount">12</span></button>
             <button class="nav-item" data-view="dashboard"><span>📊</span> 仪表盘</button>
         </nav>
         <div style="padding:16px;border-top:1px solid var(--border-light);font-size:12px;color:var(--text-muted);">
-            ⚡ 免费版 · 本地Agent引擎
+            ⚡ 基于 SearXNG · 完全免费 · 无需 API Key
         </div>
     </aside>
 
@@ -74,7 +74,7 @@
             <div style="display:flex;align-items:center;gap:16px;"><h2 id="viewTitle">🤖 AI Agent 自动搜索</h2></div>
             <div style="display:flex;gap:12px;">
                 <button class="btn btn-outline btn-sm" onclick="switchView('pipeline')">📋 查看管道</button>
-                <button class="btn btn-primary btn-sm" id="startAgentBtn">▶️ 启动自动搜索</button>
+                <button class="btn btn-primary btn-sm" id="startAgentBtn">▶️ 全网扫描</button>
             </div>
         </header>
 
@@ -150,8 +150,10 @@
 
     <script>
         // ==================== 全局变量 ====================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec';
-        
+        // 可用的公共 SearXNG 实例，可以随时替换
+        const SEARXNG_INSTANCE = 'https://searx.be'; // 主实例
+        // 备用实例（取消注释即可切换）：'https://search.sapti.me'
+
         let leadsDB = [
             {id:1,company:'Sonos Inc.',industry:'智能家居/智能音箱',country:'美国',contact:'John Miller',score:92,status:'hot',stage:'quotation',estValue:'$850K',need:'高品质动圈喇叭模组',source:'Agent搜索',contacts:[{name:'John Miller',title:'采购总监',email:'j.miller@sonos.com'}],customs:[],activities:[]},
             {id:2,company:'Bosch Home Appliances',industry:'家用电器',country:'德国',contact:'Anna Schmidt',score:88,status:'hot',stage:'contacted',estValue:'$620K',need:'防水蜂鸣器模组',source:'海关数据',contacts:[{name:'Anna Schmidt',title:'供应链经理',email:'a.schmidt@bosch-home.com'}],customs:[],activities:[]},
@@ -184,7 +186,7 @@
             document.getElementById('overdueLeads').textContent = leadsDB.filter(l=>l.nextFollowUp && l.nextFollowUp < new Date().toISOString().split('T')[0]).length;
         }
 
-        // ==================== AI Agent 真实搜索 ====================
+        // ==================== SearXNG 搜索 ====================
         async function startAgentSearch(){
             const keywords = document.getElementById('keywordsInput').value;
             const industry = document.getElementById('industrySelect').value;
@@ -195,34 +197,80 @@
             const logContent = document.getElementById('logContent');
             const progressFill = document.getElementById('progressFill');
             logDiv.style.display = 'block';
-            logContent.innerHTML = `<div>🔍 正在调用 Google 搜索 API...</div>`;
+            logContent.innerHTML = `<div>🔍 正在通过 SearXNG 全网搜索...</div>`;
             progressFill.style.width = '30%';
-            const btn = document.getElementById('startAgentBtn');
-            if(btn) btn.disabled = true;
+            document.getElementById('startAgentBtn').disabled = true;
+            if(document.getElementById('manualSearchBtn')) document.getElementById('manualSearchBtn').disabled = true;
+
+            // 英文补充关键词
+            const query = encodeURIComponent(`${keywords} ${industry} speaker module manufacturer OR supplier OR buyer`);
 
             try {
-                const params = new URLSearchParams({ keyword: keywords, industry: industry, region: region });
-                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const response = await fetch(`${SEARXNG_INSTANCE}/search?format=json&q=${query}`);
                 const data = await response.json();
-                if(data.success && data.leads){
-                    agentFoundLeads = data.leads.map((l, idx) => ({
-                        ...l,
-                        id: Date.now() + idx,
-                        status: l.score>=80?'hot':'warm',
-                        stage:'new',
-                        customs: []
-                    }));
-                    logContent.innerHTML += `<div>✅ 搜索完成！获取到 ${data.leads.length} 条真实线索</div>`;
+                if (data.results && data.results.length > 0) {
+                    agentFoundLeads = parseSearxResults(data.results);
+                    logContent.innerHTML += `<div>✅ 搜索完成！获取到 ${agentFoundLeads.length} 条线索</div>`;
                     progressFill.style.width = '100%';
-                    showToast(`✅ 搜索完成！发现 ${data.leads.length} 条线索`);
+                    showToast(`✅ 找到 ${agentFoundLeads.length} 个潜在客户`);
                 } else {
-                    logContent.innerHTML += `<div>⚠️ 未获取到结果，请更换关键词重试</div>`;
+                    logContent.innerHTML += `<div>⚠️ 未找到结果，请更换关键词试试</div>`;
                 }
-            } catch(e){
+            } catch (e) {
                 logContent.innerHTML += `<div>❌ 请求失败：${e.message}</div>`;
+                showToast('搜索请求失败，请检查网络或更换公共实例');
             }
-            if(btn) btn.disabled = false;
+            document.getElementById('startAgentBtn').disabled = false;
+            if(document.getElementById('manualSearchBtn')) document.getElementById('manualSearchBtn').disabled = false;
             renderAgentResults();
+        }
+
+        function parseSearxResults(results) {
+            return results.map((item, index) => {
+                let title = item.title || '';
+                let snippet = item.content || item.snippet || '';
+                let url = item.url || '';
+
+                // 从标题提取公司名
+                let company = title.split(' - ')[0].split(' | ')[0].trim();
+                if (!company || company.length < 2) company = title.substring(0, 50);
+
+                // 简单行业分类
+                let industry = '其他';
+                const text = (title + snippet).toLowerCase();
+                if (/speaker|driver|transducer|audio module/i.test(text)) industry = '喇叭/音频';
+                else if (/home|smart|iot/i.test(text)) industry = '智能家居';
+                else if (/auto|car|vehicle/i.test(text)) industry = '汽车电子';
+                else if (/medical|health/i.test(text)) industry = '医疗器械';
+                else if (/alarm|security/i.test(text)) industry = '安防';
+
+                // 推测国家
+                let country = '未知';
+                try {
+                    const domain = new URL(url).hostname;
+                    if (domain.endsWith('.de')) country = '德国';
+                    else if (domain.endsWith('.co.uk') || domain.endsWith('.uk')) country = '英国';
+                    else if (domain.endsWith('.jp')) country = '日本';
+                    else if (domain.endsWith('.kr')) country = '韩国';
+                    else if (domain.endsWith('.com') || domain.endsWith('.us')) country = '美国';
+                } catch (e) {}
+
+                return {
+                    id: Date.now() + index,
+                    company: company,
+                    industry: industry,
+                    country: country,
+                    contact: '',
+                    title: '',
+                    email: '',
+                    need: title,
+                    score: Math.floor(Math.random() * 30 + 60),
+                    source: 'SearXNG全网搜索',
+                    customs: [],
+                    estValue: '',
+                    url: url
+                };
+            });
         }
 
         function renderAgentResults(){
@@ -254,9 +302,8 @@
                         <div class="detail-row"><span>国家</span><span>${lead.country}</span></div>
                         <div class="detail-row"><span>需求产品</span><span>${lead.need}</span></div>
                         <div class="detail-row"><span>数据来源</span><span>${lead.source}</span></div>
+                        ${lead.url ? `<div class="detail-row"><span>网页链接</span><span style="font-size:11px;"><a href="${lead.url}" target="_blank">打开原文</a></span></div>` : ''}
                     </div>
-                    ${lead.contact ? `<div class="detail-section"><h5>联系人</h5><div>${lead.contact} · ${lead.title}<br>📧 ${lead.email}</div></div>` : ''}
-                    ${lead.customs && lead.customs.length ? `<div class="detail-section"><h5>海关记录</h5>${lead.customs.map(c=>`<div style="font-size:11px;">${c.date} ${c.desc} ${c.val}</div>`).join('')}</div>` : ''}
                     <button class="btn btn-primary btn-sm" onclick="addToPipeline(${id})">➕ 添加到客户管道</button>
                 </div>`;
         }
@@ -267,10 +314,9 @@
             if(leadsDB.some(l=>l.company===lead.company)) return showToast('该客户已在管道中');
             leadsDB.push({
                 id: Date.now(), company:lead.company, industry:lead.industry, country:lead.country,
-                contact:lead.contact || '', title:lead.title || '', score:lead.score, status:lead.score>=80?'hot':'warm',
+                contact:'', title:'', score:lead.score, status:lead.score>=80?'hot':'warm',
                 stage:'new', estValue:lead.estValue || '待评估', need:lead.need, source:lead.source,
-                contacts: lead.contact ? [{name:lead.contact, title:lead.title, email:lead.email}] : [],
-                customs: lead.customs || [], activities:[], nextFollowUp:''
+                contacts:[], customs:[], activities:[], nextFollowUp:''
             });
             showToast(`✅ ${lead.company} 已加入管道`);
             if(document.getElementById('view-pipeline') && !document.getElementById('view-pipeline').classList.contains('hidden')){
@@ -316,17 +362,12 @@
         function setFilter(f){ currentFilter = f; renderPipelineLeads(f); }
 
         // ==================== 事件绑定 ====================
-        document.addEventListener('DOMContentLoaded', function(){
-            // 导航切换
+        document.addEventListener('DOMContentLoaded', ()=>{
             document.querySelectorAll('.nav-item').forEach(item=>{
                 item.addEventListener('click', ()=> switchView(item.dataset.view));
             });
-            // 搜索按钮 (新版)
-            const manualBtn = document.getElementById('manualSearchBtn');
-            if(manualBtn) manualBtn.addEventListener('click', startAgentSearch);
-            const startBtn = document.getElementById('startAgentBtn');
-            if(startBtn) startBtn.addEventListener('click', startAgentSearch);
-            // 初始化默认视图
+            document.getElementById('startAgentBtn').addEventListener('click', startAgentSearch);
+            document.getElementById('manualSearchBtn').addEventListener('click', startAgentSearch);
             switchView('agent');
         });
     </script>
