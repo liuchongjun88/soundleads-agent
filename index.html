@@ -79,7 +79,7 @@
         </header>
 
         <div class="content-area">
-            <!-- Agent 配置与结果视图 -->
+            <!-- Agent 视图 -->
             <div id="view-agent" class="view-panel">
                 <div class="agent-config" style="background:var(--surface);padding:16px;border-radius:var(--radius-lg);">
                     <span style="font-weight:600;">🎯 搜索配置</span>
@@ -91,9 +91,8 @@
                     <select id="regionSelect" style="flex:1;">
                         <option>美国</option><option>德国</option><option>日本</option><option>韩国</option><option>英国</option>
                     </select>
-                    <button class="btn btn-primary btn-sm" onclick="startAgentSearch()">🔍 全网扫描</button>
+                    <button class="btn btn-primary btn-sm" id="manualSearchBtn">🔍 全网扫描</button>
                 </div>
-                <!-- 搜索进度与日志 -->
                 <div id="agentLog" style="background:#1e293b;color:#e2e8f0;border-radius:var(--radius);padding:16px;font-family:monospace;font-size:12px;min-height:120px;display:none;margin-bottom:16px;">
                     <div id="logContent"></div>
                     <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" id="progressFill"></div></div>
@@ -114,90 +113,79 @@
                 </div>
             </div>
 
-            <!-- 管道视图 (复用优化) -->
+            <!-- 管道视图 -->
             <div id="view-pipeline" class="view-panel hidden">
                 <div class="stats-grid" id="funnelStats"></div>
-                <div style="margin-bottom:12px;"><span class="btn btn-outline btn-xs" style="cursor:pointer;" onclick="setFilter('all')">全部</span> <span class="btn btn-outline btn-xs" onclick="setFilter('new')">新线索</span> <span class="btn btn-outline btn-xs" onclick="setFilter('contacted')">已联系</span> <span class="btn btn-outline btn-xs" onclick="setFilter('quotation')">报价中</span> <span class="btn btn-outline btn-xs" onclick="setFilter('sample')">样品</span> <span class="btn btn-outline btn-xs" onclick="setFilter('negotiation')">谈判</span></div>
+                <div style="margin-bottom:12px;">
+                    <span class="btn btn-outline btn-xs" onclick="setFilter('all')">全部</span>
+                    <span class="btn btn-outline btn-xs" onclick="setFilter('new')">新线索</span>
+                    <span class="btn btn-outline btn-xs" onclick="setFilter('contacted')">已联系</span>
+                    <span class="btn btn-outline btn-xs" onclick="setFilter('quotation')">报价中</span>
+                    <span class="btn btn-outline btn-xs" onclick="setFilter('sample')">样品</span>
+                    <span class="btn btn-outline btn-xs" onclick="setFilter('negotiation')">谈判</span>
+                </div>
                 <div class="two-col">
-                    <div class="panel"><div class="panel-header"><span>客户列表 (<span id="leadCount">0</span>)</span></div><div class="panel-body" id="leadListContainer"></div></div>
-                    <div class="panel"><div class="panel-header"><span>客户详情</span></div><div class="detail-content" id="detailContent"></div></div>
+                    <div class="panel">
+                        <div class="panel-header"><span>客户列表 (<span id="leadCount">0</span>)</span></div>
+                        <div class="panel-body" id="leadListContainer"></div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><span>客户详情</span></div>
+                        <div class="detail-content" id="detailContent"></div>
+                    </div>
                 </div>
             </div>
 
             <!-- 仪表盘 -->
-            <div id="view-dashboard" class="view-panel hidden"></div>
+            <div id="view-dashboard" class="view-panel hidden">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-value" id="totalLeads">0</div><div class="stat-label">总客户数</div></div>
+                    <div class="stat-card"><div class="stat-value" id="overdueLeads">0</div><div class="stat-label">超期未跟进</div></div>
+                </div>
+            </div>
         </div>
     </div>
+
     <div id="toastContainer"></div>
 
     <script>
-        // ==================== 数据存储 ====================
-        const leadsDB = [
-            {id:1,company:'Sonos Inc.',industry:'智能家居/智能音箱',country:'美国',contact:'John Miller',score:92,status:'hot',stage:'quotation',estValue:'$850K',need:'高品质动圈喇叭模组',source:'Agent搜索',contacts:[{name:'John Miller',title:'采购总监',email:'j.miller@sonos.com'}],customs:[{hs:'8518.40',desc:'喇叭模组',date:'2026-03-15',val:'$185K'}],activities:[]},
-            {id:2,company:'Bosch Home Appliances',industry:'家用电器',country:'德国',contact:'Anna Schmidt',score:88,status:'hot',stage:'contacted',estValue:'$620K',need:'防水蜂鸣器模组',source:'海关数据',contacts:[{name:'Anna Schmidt',title:'供应链经理',email:'a.schmidt@bosch-home.com'}],customs:[{hs:'8531.80',desc:'蜂鸣器',date:'2026-04-02',val:'$98K'}],activities:[]},
-            {id:3,company:'Ring (Amazon)',industry:'智能家居/智能音箱',country:'美国',contact:'Mike Chen',score:95,status:'hot',stage:'sample',estValue:'$1.2M',need:'门铃喇叭模组+控制板',source:'Agent搜索',contacts:[{name:'Mike Chen',title:'硬件VP',email:'mike.chen@ring.com'}],customs:[{hs:'8518.40',desc:'门铃模组',date:'2026-04-10',val:'$275K'}],activities:[]},
-            {id:5,company:'Tesla Inc.',industry:'汽车电子',country:'美国',contact:'Elon Reeve',score:91,status:'hot',stage:'negotiation',estValue:'$3.5M',need:'AVAS喇叭模组',source:'行业展会',contacts:[{name:'Elon Reeve',title:'供应链总监',email:'ereeve@tesla.com'}],customs:[],activities:[]}
+        // ==================== 全局变量 ====================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec';
+        
+        let leadsDB = [
+            {id:1,company:'Sonos Inc.',industry:'智能家居/智能音箱',country:'美国',contact:'John Miller',score:92,status:'hot',stage:'quotation',estValue:'$850K',need:'高品质动圈喇叭模组',source:'Agent搜索',contacts:[{name:'John Miller',title:'采购总监',email:'j.miller@sonos.com'}],customs:[],activities:[]},
+            {id:2,company:'Bosch Home Appliances',industry:'家用电器',country:'德国',contact:'Anna Schmidt',score:88,status:'hot',stage:'contacted',estValue:'$620K',need:'防水蜂鸣器模组',source:'海关数据',contacts:[{name:'Anna Schmidt',title:'供应链经理',email:'a.schmidt@bosch-home.com'}],customs:[],activities:[]},
+            {id:3,company:'Ring (Amazon)',industry:'智能家居/智能音箱',country:'美国',contact:'Mike Chen',score:95,status:'hot',stage:'sample',estValue:'$1.2M',need:'门铃喇叭模组+控制板',source:'Agent搜索',contacts:[{name:'Mike Chen',title:'硬件VP',email:'mike.chen@ring.com'}],customs:[],activities:[]}
         ];
-
-        // 模拟Agent搜索结果容器
         let agentFoundLeads = [];
-        let currentView = 'agent';
+        let currentFilter = 'all';
 
-        // ==================== 视图切换 ====================
+        // ==================== 工具函数 ====================
+        function showToast(msg){
+            const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+            document.getElementById('toastContainer').appendChild(t);
+            setTimeout(()=>{t.remove();},3000);
+        }
+
         function switchView(view){
-            currentView = view;
             document.querySelectorAll('.view-panel').forEach(v=>v.classList.add('hidden'));
             document.getElementById('view-'+view)?.classList.remove('hidden');
             document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-            document.querySelector(`[data-view="${view}"]`)?.classList.add('active');
-            document.getElementById('viewTitle').textContent = {agent:'🤖 AI Agent 自动搜索',pipeline:'📋 客户开发管道',dashboard:'📊 销售仪表盘'}[view]||view;
+            document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('active');
+            document.getElementById('viewTitle').textContent = {
+                agent:'🤖 AI Agent 自动搜索', pipeline:'📋 客户开发管道', dashboard:'📊 销售仪表盘'
+            }[view]||view;
             if(view==='pipeline'){ renderFunnelStats(); renderPipelineLeads(); }
             if(view==='dashboard') renderDashboard();
         }
 
-        // ==================== AI Agent 模拟搜索 ====================
-        // 真实 API 搜索
-async function startAgentSearch() {
-  const keywords = document.getElementById('keywordsInput').value;
-  const industry = document.getElementById('industrySelect').value;
-  const region = document.getElementById('regionSelect').value;
-  if (!keywords) return showToast('请输入产品关键词');
+        function renderDashboard(){
+            document.getElementById('totalLeads').textContent = leadsDB.length;
+            document.getElementById('overdueLeads').textContent = leadsDB.filter(l=>l.nextFollowUp && l.nextFollowUp < new Date().toISOString().split('T')[0]).length;
+        }
 
-  const logDiv = document.getElementById('agentLog');
-  const logContent = document.getElementById('logContent');
-  const progressFill = document.getElementById('progressFill');
-  logDiv.style.display = 'block';
-  logContent.innerHTML = `<div>🔍 正在调用真实搜索 API...</div>`;
-  progressFill.style.width = '30%';
-  document.getElementById('startAgentBtn').disabled = true;
-
-  const apiUrl = '你的Web应用网址'; // 替换为第二阶段部署得到的网址
-  const params = new URLSearchParams({ keyword: keywords, industry: industry, region: region });
-
-  try {
-    const response = await fetch(`${apiUrl}?${params.toString()}`);
-    const data = await response.json();
-    if (data.success && data.leads) {
-      agentFoundLeads = data.leads.map((l, idx) => ({
-        ...l,
-        id: Date.now() + idx,
-        status: l.score >= 80 ? 'hot' : 'warm',
-        stage: 'new',
-        customs: [] // 结构化占位，后续可扩展
-      }));
-      logContent.innerHTML += `<div>✅ 搜索完成！从 Google 获取 ${data.leads.length} 条线索</div>`;
-      progressFill.style.width = '100%';
-      showToast(`✅ 真实搜索完成！发现 ${data.leads.length} 条线索`);
-    } else {
-      logContent.innerHTML += `<div>⚠️ 未获取到结果，请检查配置或更换关键词</div>`;
-    }
-  } catch (error) {
-    logContent.innerHTML += `<div>❌ 请求失败：${error.message}</div>`;
-  }
-  
-  document.getElementById('startAgentBtn').disabled = false;
-  renderAgentResults();
-}{
+        // ==================== AI Agent 真实搜索 ====================
+        async function startAgentSearch(){
             const keywords = document.getElementById('keywordsInput').value;
             const industry = document.getElementById('industrySelect').value;
             const region = document.getElementById('regionSelect').value;
@@ -207,50 +195,43 @@ async function startAgentSearch() {
             const logContent = document.getElementById('logContent');
             const progressFill = document.getElementById('progressFill');
             logDiv.style.display = 'block';
-            logContent.innerHTML = '';
-            progressFill.style.width = '0%';
+            logContent.innerHTML = `<div>🔍 正在调用 Google 搜索 API...</div>`;
+            progressFill.style.width = '30%';
+            const btn = document.getElementById('startAgentBtn');
+            if(btn) btn.disabled = true;
 
-            // 模拟搜索步骤
-            const steps = [
-                `🔍 启动Agent... 产品: ${keywords} | 行业: ${industry} | 地区: ${region}`,
-                `📡 正在查询海关数据库 (HS 8518, 8531)...`,
-                `🌐 正在抓取Google商业列表...`,
-                `🔗 扫描LinkedIn公司主页...`,
-                `📊 分析近期进口记录...`,
-                `✅ 搜索完成！发现潜在客户。`
-            ];
-            let i = 0;
-            const interval = setInterval(()=>{
-                if(i < steps.length){
-                    logContent.innerHTML += `<div style="margin:4px 0;">${steps[i]}</div>`;
-                    progressFill.style.width = `${(i+1)/steps.length*100}%`;
-                    i++;
+            try {
+                const params = new URLSearchParams({ keyword: keywords, industry: industry, region: region });
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const data = await response.json();
+                if(data.success && data.leads){
+                    agentFoundLeads = data.leads.map((l, idx) => ({
+                        ...l,
+                        id: Date.now() + idx,
+                        status: l.score>=80?'hot':'warm',
+                        stage:'new',
+                        customs: []
+                    }));
+                    logContent.innerHTML += `<div>✅ 搜索完成！获取到 ${data.leads.length} 条真实线索</div>`;
+                    progressFill.style.width = '100%';
+                    showToast(`✅ 搜索完成！发现 ${data.leads.length} 条线索`);
                 } else {
-                    clearInterval(interval);
-                    // 生成模拟结果
-                    generateAgentResults(keywords, industry, region);
-                    document.getElementById('startAgentBtn').disabled = false;
+                    logContent.innerHTML += `<div>⚠️ 未获取到结果，请更换关键词重试</div>`;
                 }
-            }, 800);
-            document.getElementById('startAgentBtn').disabled = true;
-        }
-
-        function generateAgentResults(keywords, industry, region){
-            // 模拟数据
-            const sampleLeads = [
-                {company:'Harman International', industry:'汽车电子', country:'美国', need:'车规级喇叭模组', score:90, contact:'Robert Kim', title:'全球采购', email:'r.kim@harman.com', source:'海关数据', customs:[{hs:'8518.29',desc:'车用喇叭',date:'2026-04-15',val:'$320K'}]},
-                {company:'Logitech Inc.', industry:'消费电子', country:'美国', need:'薄型平板喇叭', score:82, contact:'Sophie Martin', title:'供应链经理', email:'sophie.m@logitech.com', source:'Google搜索', customs:[{hs:'8518.29',desc:'喇叭单元',date:'2026-04-20',val:'$180K'}]},
-                {company:'VTech Holdings', industry:'消费电子', country:'中国香港', need:'儿童教育玩具喇叭模组', score:78, contact:'Leung Chi-wai', title:'采购总监', email:'cw.leung@vtech.com', source:'LinkedIn', customs:[]},
-                {company:'ABB Ltd.', industry:'工业设备', country:'瑞士', need:'工业警报蜂鸣器', score:75, contact:'Anders Johansson', title:'品类经理', email:'anders.j@abb.com', source:'展会名录', customs:[{hs:'8531.80',desc:'警报装置',date:'2026-03-28',val:'$95K'}]},
-            ];
-            agentFoundLeads = sampleLeads.map((l,idx)=>({...l, id: Date.now()+idx, status:'hot', stage:'new', estValue:l.customs?.length?`$${Math.floor(Math.random()*500)+200}K`:'待评估'}));
+            } catch(e){
+                logContent.innerHTML += `<div>❌ 请求失败：${e.message}</div>`;
+            }
+            if(btn) btn.disabled = false;
             renderAgentResults();
-            showToast(`✅ Agent 搜索完成！发现 ${agentFoundLeads.length} 条新线索`);
         }
 
         function renderAgentResults(){
             const container = document.getElementById('agentResultsContainer');
             document.getElementById('foundCount').textContent = agentFoundLeads.length;
+            if(agentFoundLeads.length === 0){
+                container.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px;">暂无结果，请搜索</div>';
+                return;
+            }
             container.innerHTML = agentFoundLeads.map(l=>`
                 <div class="lead-card" onclick="selectAgentLead(${l.id})" id="agentCard${l.id}">
                     <div class="lead-top"><span class="company-name">${l.company}</span><span class="lead-score score-hot">${l.score}分</span></div>
@@ -275,7 +256,7 @@ async function startAgentSearch() {
                         <div class="detail-row"><span>数据来源</span><span>${lead.source}</span></div>
                     </div>
                     ${lead.contact ? `<div class="detail-section"><h5>联系人</h5><div>${lead.contact} · ${lead.title}<br>📧 ${lead.email}</div></div>` : ''}
-                    ${lead.customs?.length ? `<div class="detail-section"><h5>海关记录</h5>${lead.customs.map(c=>`<div style="font-size:11px;">${c.date} ${c.desc} ${c.val}</div>`).join('')}</div>` : ''}
+                    ${lead.customs && lead.customs.length ? `<div class="detail-section"><h5>海关记录</h5>${lead.customs.map(c=>`<div style="font-size:11px;">${c.date} ${c.desc} ${c.val}</div>`).join('')}</div>` : ''}
                     <button class="btn btn-primary btn-sm" onclick="addToPipeline(${id})">➕ 添加到客户管道</button>
                 </div>`;
         }
@@ -283,20 +264,21 @@ async function startAgentSearch() {
         function addToPipeline(id){
             const lead = agentFoundLeads.find(l=>l.id===id);
             if(!lead) return;
-            // 检查是否已存在
             if(leadsDB.some(l=>l.company===lead.company)) return showToast('该客户已在管道中');
             leadsDB.push({
                 id: Date.now(), company:lead.company, industry:lead.industry, country:lead.country,
-                contact:lead.contact, title:lead.title, score:lead.score, status:lead.score>=80?'hot':'warm',
-                stage:'new', estValue:lead.estValue, need:lead.need, source:lead.source,
-                contacts:lead.contact?[{name:lead.contact,title:lead.title,email:lead.email}]:[],
-                customs:lead.customs||[], activities:[], nextFollowUp:''
+                contact:lead.contact || '', title:lead.title || '', score:lead.score, status:lead.score>=80?'hot':'warm',
+                stage:'new', estValue:lead.estValue || '待评估', need:lead.need, source:lead.source,
+                contacts: lead.contact ? [{name:lead.contact, title:lead.title, email:lead.email}] : [],
+                customs: lead.customs || [], activities:[], nextFollowUp:''
             });
             showToast(`✅ ${lead.company} 已加入管道`);
-            if(currentView==='pipeline'){ renderFunnelStats(); renderPipelineLeads(); }
+            if(document.getElementById('view-pipeline') && !document.getElementById('view-pipeline').classList.contains('hidden')){
+                renderFunnelStats(); renderPipelineLeads();
+            }
         }
 
-        // ==================== 管道渲染 ====================
+        // ==================== 管道逻辑 ====================
         function renderFunnelStats(){
             const stages = ['new','contacted','quotation','sample','negotiation','won'];
             const names = {new:'新线索',contacted:'已联系',quotation:'报价中',sample:'样品',negotiation:'谈判',won:'成交'};
@@ -331,24 +313,22 @@ async function startAgentSearch() {
             `;
         }
 
-        function setFilter(f){ renderPipelineLeads(f); }
+        function setFilter(f){ currentFilter = f; renderPipelineLeads(f); }
 
-        function renderDashboard(){
-            document.getElementById('view-dashboard').innerHTML = `
-                <div class="stats-grid"><div class="stat-card"><div class="stat-value">${leadsDB.length}</div><div class="stat-label">管道总客户</div></div>
-                <div class="stat-card"><div class="stat-value">${agentFoundLeads.length}</div><div class="stat-label">本次新发现</div></div></div>`;
-        }
-
-        function showToast(msg){
-            const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
-            document.getElementById('toastContainer').appendChild(t);
-            setTimeout(()=>{t.remove();},2500);
-        }
-
-        // 初始化
-        document.querySelectorAll('.nav-item').forEach(el=>el.addEventListener('click', ()=>switchView(el.dataset.view)));
-        switchView('agent');
-        renderAgentResults();
+        // ==================== 事件绑定 ====================
+        document.addEventListener('DOMContentLoaded', function(){
+            // 导航切换
+            document.querySelectorAll('.nav-item').forEach(item=>{
+                item.addEventListener('click', ()=> switchView(item.dataset.view));
+            });
+            // 搜索按钮 (新版)
+            const manualBtn = document.getElementById('manualSearchBtn');
+            if(manualBtn) manualBtn.addEventListener('click', startAgentSearch);
+            const startBtn = document.getElementById('startAgentBtn');
+            if(startBtn) startBtn.addEventListener('click', startAgentSearch);
+            // 初始化默认视图
+            switchView('agent');
+        });
     </script>
 </body>
 </html>
