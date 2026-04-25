@@ -8,17 +8,19 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; background: #f5f6fa; color: #1e293b; }
         .container { max-width: 900px; margin: 0 auto; }
         input, select, button { padding: 10px 14px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
-        button { background: #1a56db; color: #fff; cursor: pointer; border: none; margin-left: 8px; }
+        button { background: #1a56db; color: #fff; cursor: pointer; border: none; }
+        .btn-all { background: #f59e0b; }
         .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin: 8px 0; cursor: pointer; }
         .card:hover { border-color: #1a56db; }
         #toast { position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; display: none; }
+        .detail { background: #f8f9fc; padding: 16px; border-radius: 8px; margin-top: 16px; }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>🔊 SoundLeads Agent</h1>
     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-        <input type="text" id="keywords" placeholder="英文关键词，如 speaker" value="speaker" style="flex:2;">
+        <input type="text" id="keywords" placeholder="关键词，如 speaker 或 喇叭" style="flex:2;">
         <select id="industry" style="flex:1;">
             <option value="">所有行业</option>
             <option>喇叭单元制造</option>
@@ -30,7 +32,8 @@
             <option value="">所有地区</option>
             <option>德国</option><option>美国</option><option>日本</option><option>丹麦</option><option>意大利</option>
         </select>
-        <button id="searchBtn">🔍 搜索制造商</button>
+        <button id="searchBtn">🔍 搜索</button>
+        <button id="showAllBtn" class="btn-all">📋 显示全部制造商</button>
     </div>
     <div id="log" style="font-size:12px;color:#666;margin-bottom:12px;"></div>
     <div id="results"></div>
@@ -39,6 +42,7 @@
 
 <script>
     var API_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec';
+
     function showToast(msg) {
         var t = document.getElementById('toast');
         t.textContent = msg;
@@ -46,35 +50,68 @@
         setTimeout(function() { t.style.display = 'none'; }, 3000);
     }
 
+    function fetchLeads(keyword, industry, region) {
+        var params = 'keyword=' + encodeURIComponent(keyword || '');
+        if (industry) params += '&industry=' + encodeURIComponent(industry);
+        if (region) params += '&region=' + encodeURIComponent(region);
+        return fetch(API_URL + '?' + params).then(function(response) { return response.json(); });
+    }
+
+    function renderCards(leads) {
+        var html = '';
+        leads.forEach(function(lead) {
+            html += '<div class="card" onclick="showDetail(this)" data-company="' + lead.company + '" data-industry="' + lead.industry + '" data-country="' + lead.country + '" data-need="' + lead.need + '" data-url="' + lead.url + '">' +
+                '<strong>' + lead.company + '</strong> (' + lead.score + '分)<br>' +
+                '🏭 ' + lead.industry + ' · 📍 ' + lead.country + '<br>' +
+                '📋 需要: ' + lead.need + '</div>';
+        });
+        document.getElementById('results').innerHTML = html;
+    }
+
+    function showDetail(card) {
+        var company = card.dataset.company;
+        var industry = card.dataset.industry;
+        var country = card.dataset.country;
+        var need = card.dataset.need;
+        var url = card.dataset.url;
+        var detailHtml = '<div class="detail">' +
+            '<h2>' + company + '</h2>' +
+            '<p><strong>行业：</strong>' + industry + '<br>' +
+            '<strong>国家：</strong>' + country + '<br>' +
+            '<strong>需求产品：</strong>' + need + '<br>' +
+            '<strong>网站：</strong><a href="' + url + '" target="_blank">' + url + '</a></p>' +
+            '<button onclick="showToast(\'开发信已发送至测试邮箱\')">📧 发送开发信</button>' +
+            ' <button onclick="backToList()">返回列表</button>' +
+            '</div>';
+        document.getElementById('results').innerHTML = detailHtml;
+    }
+
+    function backToList() {
+        // 重新执行最近一次搜索（无法保存上下文，简单重新搜索全部）
+        document.getElementById('keywords').value = 'speaker';
+        doSearch();
+    }
+
     function doSearch() {
         var keywords = document.getElementById('keywords').value.trim();
         var industry = document.getElementById('industry').value;
         var region = document.getElementById('region').value;
-        if (!keywords) { showToast('请输入关键词，如 speaker'); return; }
+        if (!keywords) {
+            showToast('请输入关键词，如 speaker');
+            return;
+        }
         var logDiv = document.getElementById('log');
         logDiv.textContent = '🔍 正在查询全球供应商数据库...';
         document.getElementById('searchBtn').disabled = true;
 
-        var params = 'keyword=' + encodeURIComponent(keywords);
-        if (industry) params += '&industry=' + encodeURIComponent(industry);
-        if (region) params += '&region=' + encodeURIComponent(region);
-
-        fetch(API_URL + '?' + params)
-            .then(function(response) { return response.json(); })
+        fetchLeads(keywords, industry, region)
             .then(function(data) {
                 if (data.success && data.leads && data.leads.length > 0) {
                     showToast('✅ 找到 ' + data.leads.length + ' 家制造商');
-                    var html = '';
-                    data.leads.forEach(function(lead) {
-                        html += '<div class="card" onclick="showDetail(this)" data-company="' + lead.company + '" data-industry="' + lead.industry + '" data-country="' + lead.country + '" data-need="' + lead.need + '" data-url="' + lead.url + '">' +
-                            '<strong>' + lead.company + '</strong> (' + lead.score + '分)<br>' +
-                            '🏭 ' + lead.industry + ' · 📍 ' + lead.country + '<br>' +
-                            '📋 需要: ' + lead.need + '</div>';
-                    });
-                    document.getElementById('results').innerHTML = html;
+                    renderCards(data.leads);
                     logDiv.textContent = '✅ 显示 ' + data.leads.length + ' 条结果';
                 } else {
-                    logDiv.textContent = '⚠️ 未找到匹配的制造商，请尝试更通用的关键词（如 speaker 或 喇叭）并清空地区筛选';
+                    logDiv.textContent = '⚠️ 未找到匹配的制造商，请尝试更通用的关键词（如 speaker）并清空地区筛选';
                     document.getElementById('results').innerHTML = '';
                 }
             })
@@ -87,23 +124,29 @@
             });
     }
 
-    function showDetail(card) {
-        var company = card.dataset.company;
-        var industry = card.dataset.industry;
-        var country = card.dataset.country;
-        var need = card.dataset.need;
-        var url = card.dataset.url;
-        var detailHtml = '<h3>' + company + '</h3>' +
-            '<p><strong>行业：</strong>' + industry + '<br>' +
-            '<strong>国家：</strong>' + country + '<br>' +
-            '<strong>需求产品：</strong>' + need + '<br>' +
-            '<strong>网站：</strong><a href="' + url + '" target="_blank">' + url + '</a></p>' +
-            '<button onclick="showToast(\'开发信已发送至测试邮箱\')">📧 发送开发信</button>';
-        document.getElementById('results').innerHTML = detailHtml + '<hr><button onclick="doSearch()">返回列表</button>';
+    function showAll() {
+        var logDiv = document.getElementById('log');
+        logDiv.textContent = '📋 正在加载所有制造商...';
+        fetchLeads('', '', '') // 不带任何参数，后端会返回全部
+            .then(function(data) {
+                if (data.success && data.leads && data.leads.length > 0) {
+                    showToast('✅ 共有 ' + data.leads.length + ' 家制造商');
+                    renderCards(data.leads);
+                    logDiv.textContent = '✅ 显示全部 ' + data.leads.length + ' 条记录';
+                } else {
+                    logDiv.textContent = '⚠️ 数据库暂时为空，请检查 Apps Script 部署';
+                }
+            })
+            .catch(function(e) {
+                logDiv.textContent = '❌ 请求失败：' + e.message;
+            });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('searchBtn').addEventListener('click', doSearch);
+        document.getElementById('showAllBtn').addEventListener('click', showAll);
+        // 可选：页面加载后自动显示全部
+        // showAll();
     });
 </script>
 </body>
