@@ -97,7 +97,6 @@
     }
 
     function backToList() {
-        // 简单返回显示全部
         renderCards(supplierDB);
     }
 
@@ -123,7 +122,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('searchBtn').addEventListener('click', doSearch);
         document.getElementById('showAllBtn').addEventListener('click', showAll);
-        // 默认显示全部制造商，方便直接查看
+        // 页面加载后自动显示所有制造商，这样你打开页面就看到数据了
         showAll();
     });
 </script>
