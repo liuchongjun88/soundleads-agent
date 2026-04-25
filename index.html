@@ -65,7 +65,7 @@
             <button class="nav-item" data-view="dashboard"><span>📊</span> 仪表盘</button>
         </nav>
         <div style="padding:16px;border-top:1px solid var(--border-light);font-size:12px;color:var(--text-muted);">
-            ⚡ DuckDuckGo API · 无需密钥 · 完全免费
+            ⚡ Apps Script 代理 · DuckDuckGo 搜索 · 完全免费
         </div>
     </aside>
 
@@ -82,7 +82,7 @@
             <div id="view-agent" class="view-panel">
                 <div class="agent-config" style="background:var(--surface);padding:16px;border-radius:var(--radius-lg);">
                     <span style="font-weight:600;">🎯 搜索配置</span>
-                    <input type="text" id="keywordsInput" placeholder="产品关键词" value="speaker module manufacturer" style="flex:2;">
+                    <input type="text" id="keywordsInput" placeholder="英文关键词，如 speaker module manufacturer" value="speaker module manufacturer" style="flex:2;">
                     <select id="industrySelect" style="flex:1;">
                         <option value="">所有行业</option>
                         <option>智能家居/智能音箱</option><option>家用电器</option><option>汽车电子</option>
@@ -90,8 +90,7 @@
                     </select>
                     <select id="regionSelect" style="flex:1;">
                         <option value="">所有地区</option>
-                        <option>China</option><option>Germany</option><option>Japan</option>
-                        <option>Korea</option><option>UK</option><option>USA</option>
+                        <option>Germany</option><option>USA</option><option>Japan</option><option>Korea</option><option>UK</option>
                     </select>
                     <button class="btn btn-primary btn-sm" id="manualSearchBtn">🔍 全网扫描</button>
                 </div>
@@ -140,14 +139,19 @@
     <div id="toastContainer"></div>
 
     <script>
-        // ---- 数据 ----
+        // ========== 配置 ==========
+        // 你的 Apps Script Web 应用地址（永久不变）
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec';
+
+        // ========== 数据 ==========
         let leadsDB = [
-            {id:1,company:'Sonos Inc.',industry:'智能家居/智能音箱',country:'USA',contact:'John Miller',score:92,status:'hot',stage:'quotation',estValue:'$850K',need:'高品质动圈喇叭模组',source:'DuckDuckGo'},
-            {id:2,company:'Bosch Home Appliances',industry:'家用电器',country:'Germany',contact:'Anna Schmidt',score:88,status:'hot',stage:'contacted',estValue:'$620K',need:'防水蜂鸣器模组',source:'DuckDuckGo'}
+            {id:1,company:'Sonos Inc.',industry:'智能家居/智能音箱',country:'USA',contact:'John Miller',score:92,status:'hot',stage:'quotation',estValue:'$850K',need:'高品质动圈喇叭模组',source:'Agent',contacts:[],customs:[],activities:[]},
+            {id:2,company:'Bosch Home Appliances',industry:'家用电器',country:'Germany',contact:'Anna Schmidt',score:88,status:'hot',stage:'contacted',estValue:'$620K',need:'防水蜂鸣器模组',source:'Agent',contacts:[],customs:[],activities:[]}
         ];
         let agentFoundLeads = [];
         let currentFilter = 'all';
 
+        // ========== 工具函数 ==========
         function showToast(msg){
             const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
             document.getElementById('toastContainer').appendChild(t);
@@ -159,9 +163,7 @@
             document.getElementById('view-'+view)?.classList.remove('hidden');
             document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
             document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('active');
-            document.getElementById('viewTitle').textContent = {
-                agent:'🤖 AI Agent 自动搜索', pipeline:'📋 客户开发管道', dashboard:'📊 销售仪表盘'
-            }[view]||view;
+            document.getElementById('viewTitle').textContent = {agent:'🤖 AI Agent 自动搜索', pipeline:'📋 客户开发管道', dashboard:'📊 销售仪表盘'}[view]||view;
             if(view==='pipeline'){ renderFunnelStats(); renderPipelineLeads(); }
             if(view==='dashboard') renderDashboard();
         }
@@ -171,50 +173,10 @@
             document.getElementById('hotLeads').textContent = leadsDB.filter(l=>l.status==='hot').length;
         }
 
-        // ---- DuckDuckGo 搜索（无需 API Key，支持 JSONP/JSON） ----
+        // ========== 搜索核心（只调用 Apps Script） ==========
         async function startAgentSearch(){
-    const keywords = document.getElementById('keywordsInput').value;
-    const industry = document.getElementById('industrySelect').value;
-    const region = document.getElementById('regionSelect').value;
-    if(!keywords) return showToast('请输入产品关键词');
-
-    const logDiv = document.getElementById('agentLog');
-    const logContent = document.getElementById('logContent');
-    const progressFill = document.getElementById('progressFill');
-    logDiv.style.display = 'block';
-    logContent.innerHTML = '<div>🔍 正在通过 Apps Script 代理搜索...</div>';
-    progressFill.style.width = '30%';
-    document.getElementById('startAgentBtn').disabled = true;
-
-    // 你的 Apps Script Web 应用地址（保持不变）
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec';
-    
-    const params = new URLSearchParams({ keyword: keywords, industry: industry, region: region });
-
-    try {
-        const response = await fetch(`${API_URL}?${params.toString()}`);
-        const data = await response.json();
-        if (data.success && data.leads && data.leads.length > 0) {
-            agentFoundLeads = data.leads.map((l, idx) => ({
-                ...l,
-                id: Date.now() + idx,
-                status: l.score >= 80 ? 'hot' : 'warm',
-                stage: 'new'
-            }));
-            logContent.innerHTML += `<div>✅ 找到 ${data.leads.length} 条线索</div>`;
-            progressFill.style.width = '100%';
-            showToast(`✅ 找到 ${data.leads.length} 个潜在客户`);
-        } else {
-            logContent.innerHTML += '<div>⚠️ 未找到结果，请尝试英文关键词（如 speaker module manufacturer）</div>';
-        }
-    } catch (e) {
-        logContent.innerHTML += `<div>❌ 请求失败：${e.message}</div>`;
-    }
-    document.getElementById('startAgentBtn').disabled = false;
-    renderAgentResults();
-}(){
             const keywords = document.getElementById('keywordsInput').value.trim();
-            if(!keywords) return showToast('请输入产品关键词');
+            if(!keywords) return showToast('请输入关键词（建议英文，如 speaker module manufacturer）');
             const industry = document.getElementById('industrySelect').value;
             const region = document.getElementById('regionSelect').value;
 
@@ -222,64 +184,34 @@
             const logContent = document.getElementById('logContent');
             const progressFill = document.getElementById('progressFill');
             logDiv.style.display='block';
-            logContent.innerHTML='<div>🔍 正在通过 DuckDuckGo 搜索...</div>';
+            logContent.innerHTML='<div>🔍 正在通过后端代理搜索 DuckDuckGo...</div>';
             progressFill.style.width='30%';
+            document.getElementById('startAgentBtn').disabled = true;
 
-            const query = [keywords, industry, region, 'supplier OR manufacturer OR buyer'].filter(Boolean).join(' ');
-            const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+            const params = new URLSearchParams({ keyword: keywords, industry: industry, region: region });
 
             try {
-                const res = await fetch(url);
-                const data = await res.json();
-
-                // DuckDuckGo API 返回的结果结构：data.RelatedTopics 或 data.Results
-                let rawResults = [];
-                if (data.Results && data.Results.length) rawResults = data.Results;
-                else if (data.RelatedTopics) rawResults = data.RelatedTopics.filter(r=>r.Text && r.FirstURL);
-
-                if (rawResults.length) {
-                    agentFoundLeads = rawResults.slice(0,10).map((item,idx) => ({
-                        id: Date.now()+idx,
-                        company: extractCompany(item.Text || item.Result || ''),
-                        industry: industry || guessIndustry(item.Text||''),
-                        country: region || 'Unknown',
-                        contact:'', title:'', email:'',
-                        need: item.Text || item.Result || '',
-                        score: 60 + Math.floor(Math.random()*30),
-                        source: 'DuckDuckGo',
-                        customs:[], estValue:'', url: item.FirstURL || item.Icon?.URL || ''
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const data = await response.json();
+                if (data.success && data.leads && data.leads.length > 0) {
+                    agentFoundLeads = data.leads.map((l, idx) => ({
+                        ...l,
+                        id: Date.now() + idx,
+                        status: l.score >= 80 ? 'hot' : 'warm',
+                        stage: 'new'
                     }));
-                    logContent.innerHTML += `<div>✅ 获取到 ${agentFoundLeads.length} 条线索</div>`;
+                    logContent.innerHTML += `<div>✅ 找到 ${data.leads.length} 条线索</div>`;
                     progressFill.style.width='100%';
-                    showToast(`✅ 找到 ${agentFoundLeads.length} 个潜在客户`);
+                    showToast(`✅ 找到 ${data.leads.length} 个潜在客户`);
                 } else {
-                    logContent.innerHTML += '<div>⚠️ 未找到结果，请尝试更具体的英文关键词</div>';
-                    showToast('未找到结果，建议使用英文关键词');
+                    logContent.innerHTML += '<div>⚠️ 未找到结果，请尝试更简单/不同的英文关键词（如 speaker manufacturer Germany）</div>';
                 }
-            } catch(e) {
+            } catch (e) {
                 logContent.innerHTML += `<div>❌ 请求失败：${e.message}</div>`;
                 showToast('搜索失败，请稍后重试');
             }
             document.getElementById('startAgentBtn').disabled = false;
             renderAgentResults();
-        }
-
-        function extractCompany(text){
-            if(!text) return 'Unknown';
-            // 简单提取首句或首词作为公司名
-            const sentence = text.split('.')[0].split(' - ')[0].split(' | ')[0];
-            const words = sentence.split(' ');
-            return words.slice(0, Math.min(4, words.length)).join(' ');
-        }
-
-        function guessIndustry(text){
-            const t = text.toLowerCase();
-            if(/speaker|driver|audio|transducer/.test(t)) return '喇叭/音频';
-            if(/home|smart|iot/.test(t)) return '智能家居';
-            if(/auto|car|vehicle/.test(t)) return '汽车电子';
-            if(/medical|health/.test(t)) return '医疗器械';
-            if(/alarm|security/.test(t)) return '安防';
-            return '其他';
         }
 
         function renderAgentResults(){
@@ -290,10 +222,11 @@
                 return;
             }
             container.innerHTML = agentFoundLeads.map(l=>`
-                <div class="lead-card" onclick="selectAgentLead(${l.id})">
+                <div class="lead-card" onclick="selectAgentLead(${l.id})" id="agentCard${l.id}">
                     <div class="lead-top"><span class="company-name">${l.company}</span><span class="lead-score score-hot">${l.score}分</span></div>
-                    <div style="font-size:11px;">📍 ${l.country} · 🏭 ${l.industry}</div>
+                    <div style="font-size:11px;color:var(--text-secondary);">📍 ${l.country} · 🏭 ${l.industry}</div>
                     <div style="font-size:11px;">${l.need.slice(0,80)}...</div>
+                    <div><span class="tag">来源: ${l.source}</span></div>
                 </div>`).join('');
         }
 
@@ -307,25 +240,29 @@
                     <h4>${lead.company}</h4>
                     <div class="detail-section"><h5>信息</h5>
                         <div class="detail-row"><span>行业</span><span>${lead.industry}</span></div>
-                        <div class="detail-row"><span>地区</span><span>${lead.country}</span></div>
-                        <div class="detail-row"><span>原始摘要</span><span style="font-size:11px;">${lead.need}</span></div>
+                        <div class="detail-row"><span>国家</span><span>${lead.country}</span></div>
+                        <div class="detail-row"><span>需求产品</span><span>${lead.need}</span></div>
                     </div>
-                    <button class="btn btn-primary btn-sm" onclick="addToPipeline(${id})">➕ 加入管道</button>
+                    <button class="btn btn-primary btn-sm" onclick="addToPipeline(${id})">➕ 加入客户管道</button>
                 </div>`;
         }
 
         function addToPipeline(id){
             const lead = agentFoundLeads.find(l=>l.id===id); if(!lead) return;
-            leadsDB.push({...lead, id:Date.now(), stage:'new', status:'warm', contacts:[], activities:[]});
+            if(leadsDB.some(l=>l.company===lead.company)) return showToast('该客户已在管道中');
+            leadsDB.push({...lead, id:Date.now(), stage:'new', status:'new', contacts:[], customs:[], activities:[]});
             showToast('✅ 已加入客户管道');
-            renderFunnelStats(); renderPipelineLeads();
+            renderFunnelStats();
+            renderPipelineLeads();
         }
 
+        // ========== 管道 ==========
         function renderFunnelStats(){
             const stages = ['new','contacted','quotation'];
+            const names = {new:'新线索',contacted:'已联系',quotation:'报价中'};
             document.getElementById('funnelStats').innerHTML = stages.map(s=>{
                 const count = leadsDB.filter(l=>l.stage===s).length;
-                return `<div class="stat-card"><div class="stat-value">${count}</div><div class="stat-label">${s}</div></div>`;
+                return `<div class="stat-card"><div class="stat-value">${count}</div><div class="stat-label">${names[s]}</div></div>`;
             }).join('');
             document.getElementById('pipeCount').textContent = leadsDB.length;
         }
@@ -345,11 +282,13 @@
             document.getElementById('detailContent').innerHTML = `
                 <h4>${lead.company}</h4>
                 <div class="detail-section"><h5>需求</h5><p>${lead.need}</p></div>
-                <button class="btn btn-primary btn-sm" onclick="showToast('开发信已模拟发送')">📧 发送开发信</button>`;
+                <button class="btn btn-primary btn-sm" onclick="showToast('开发信已发送至 '+`${lead.contact||'test@example.com'}`)">📧 发送开发信</button>
+            `;
         }
 
         function setFilter(f){ currentFilter = f; renderPipelineLeads(f); }
 
+        // ========== 初始化 ==========
         document.addEventListener('DOMContentLoaded', ()=>{
             document.querySelectorAll('.nav-item').forEach(item=>item.addEventListener('click', ()=>switchView(item.dataset.view)));
             document.getElementById('startAgentBtn').addEventListener('click', startAgentSearch);
