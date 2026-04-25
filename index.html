@@ -65,7 +65,7 @@
             <button class="nav-item" data-view="dashboard"><span>📊</span> 仪表盘</button>
         </nav>
         <div style="padding:16px;border-top:1px solid var(--border-light);font-size:12px;color:var(--text-muted);">
-            ⚡ 基于 SearXNG · 完全免费 · 无需 API Key
+            ⚡ CORS代理 + SearXNG · 完全免费
         </div>
     </aside>
 
@@ -150,9 +150,8 @@
 
     <script>
         // ==================== 全局变量 ====================
-        // 可用的公共 SearXNG 实例，可以随时替换
-        const SEARXNG_INSTANCE = 'https://searx.be'; // 主实例
-        // 备用实例（取消注释即可切换）：'https://search.sapti.me'
+        const SEARXNG_INSTANCE = 'https://searx.be'; // SearXNG 公共实例
+        const CORS_PROXY = 'https://corsproxy.io/?'; // 免费 CORS 代理
 
         let leadsDB = [
             {id:1,company:'Sonos Inc.',industry:'智能家居/智能音箱',country:'美国',contact:'John Miller',score:92,status:'hot',stage:'quotation',estValue:'$850K',need:'高品质动圈喇叭模组',source:'Agent搜索',contacts:[{name:'John Miller',title:'采购总监',email:'j.miller@sonos.com'}],customs:[],activities:[]},
@@ -186,7 +185,7 @@
             document.getElementById('overdueLeads').textContent = leadsDB.filter(l=>l.nextFollowUp && l.nextFollowUp < new Date().toISOString().split('T')[0]).length;
         }
 
-        // ==================== SearXNG 搜索 ====================
+        // ==================== SearXNG + CORS 代理 搜索 ====================
         async function startAgentSearch(){
             const keywords = document.getElementById('keywordsInput').value;
             const industry = document.getElementById('industrySelect').value;
@@ -197,16 +196,17 @@
             const logContent = document.getElementById('logContent');
             const progressFill = document.getElementById('progressFill');
             logDiv.style.display = 'block';
-            logContent.innerHTML = `<div>🔍 正在通过 SearXNG 全网搜索...</div>`;
+            logContent.innerHTML = `<div>🔍 正在通过 SearXNG + CORS 代理搜索...</div>`;
             progressFill.style.width = '30%';
             document.getElementById('startAgentBtn').disabled = true;
             if(document.getElementById('manualSearchBtn')) document.getElementById('manualSearchBtn').disabled = true;
 
-            // 英文补充关键词
             const query = encodeURIComponent(`${keywords} ${industry} speaker module manufacturer OR supplier OR buyer`);
 
             try {
-                const response = await fetch(`${SEARXNG_INSTANCE}/search?format=json&q=${query}`);
+                const apiUrl = `${SEARXNG_INSTANCE}/search?format=json&q=${query}`;
+                const proxyUrl = CORS_PROXY + encodeURIComponent(apiUrl);
+                const response = await fetch(proxyUrl);
                 const data = await response.json();
                 if (data.results && data.results.length > 0) {
                     agentFoundLeads = parseSearxResults(data.results);
@@ -218,7 +218,7 @@
                 }
             } catch (e) {
                 logContent.innerHTML += `<div>❌ 请求失败：${e.message}</div>`;
-                showToast('搜索请求失败，请检查网络或更换公共实例');
+                showToast('搜索失败，请检查网络或更换代理');
             }
             document.getElementById('startAgentBtn').disabled = false;
             if(document.getElementById('manualSearchBtn')) document.getElementById('manualSearchBtn').disabled = false;
@@ -231,11 +231,9 @@
                 let snippet = item.content || item.snippet || '';
                 let url = item.url || '';
 
-                // 从标题提取公司名
                 let company = title.split(' - ')[0].split(' | ')[0].trim();
                 if (!company || company.length < 2) company = title.substring(0, 50);
 
-                // 简单行业分类
                 let industry = '其他';
                 const text = (title + snippet).toLowerCase();
                 if (/speaker|driver|transducer|audio module/i.test(text)) industry = '喇叭/音频';
@@ -244,7 +242,6 @@
                 else if (/medical|health/i.test(text)) industry = '医疗器械';
                 else if (/alarm|security/i.test(text)) industry = '安防';
 
-                // 推测国家
                 let country = '未知';
                 try {
                     const domain = new URL(url).hostname;
