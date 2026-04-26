@@ -3,97 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundLeads Pro - 刘总专属获客引擎 (终极实战版)</title>
+    <title>SoundLeads Pro - 刘总云端获客系统</title>
     <style>
         :root { --primary: #1a73e8; --dark: #1e293b; --bg: #f8fafc; --success: #10b981; --border: #e2e8f0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--dark); display: flex; height: 100vh; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--dark); display: flex; height: 100vh; overflow: hidden; }
         
         /* 侧边栏 */
-        .sidebar { width: 280px; background: var(--dark); color: #fff; padding: 25px 20px; display: flex; flex-direction: column; position: sticky; top: 0; }
-        .logo { font-size: 22px; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
-        .status-tag { font-size: 11px; background: rgba(16, 185, 129, 0.2); color: var(--success); padding: 4px 8px; border-radius: 4px; margin-bottom: 25px; display: inline-block; }
-        .tip-box { font-size: 13px; color: #94a3b8; line-height: 1.6; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; }
+        .sidebar { width: 280px; background: var(--dark); color: #fff; padding: 25px 20px; display: flex; flex-direction: column; }
+        .logo { font-size: 22px; font-weight: bold; color: #60a5fa; margin-bottom: 5px; }
+        .status-tag { font-size: 11px; background: rgba(16, 185, 129, 0.2); color: var(--success); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 30px; }
+        .version-info { font-size: 12px; color: #94a3b8; line-height: 1.6; border-top: 1px solid #334155; pt: 20px; margin-top: auto; }
 
-        /* 主界面 */
-        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .top-bar { background: #fff; padding: 20px 30px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; z-index: 10; }
-        input { flex: 1; padding: 12px 25px; border-radius: 30px; border: 1px solid var(--border); outline: none; font-size: 15px; }
-        .btn-search { background: var(--primary); color: #fff; border: none; padding: 12px 35px; border-radius: 30px; font-weight: bold; cursor: pointer; }
+        /* 主体区域 */
+        .main { flex: 1; display: flex; flex-direction: column; }
+        .top-bar { background: #fff; padding: 20px 30px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+        input { flex: 1; padding: 12px 25px; border-radius: 30px; border: 1px solid var(--border); outline: none; font-size: 15px; transition: 0.3s; }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,115,232,0.1); }
+        .btn-search { background: var(--primary); color: #fff; border: none; padding: 12px 35px; border-radius: 30px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-search:hover { background: #1557b0; }
+
+        .content { flex: 1; display: grid; grid-template-columns: 1fr 420px; overflow: hidden; }
         
-        /* 内容区布局 */
-        .content { flex: 1; display: grid; grid-template-columns: 1fr 450px; overflow: hidden; }
+        /* 结果列表 */
         #results-list { padding: 20px; overflow-y: auto; background: #f1f5f9; }
-        
-        /* 线索卡片 */
-        .lead-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; position: relative; }
-        .lead-card:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .lead-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+        .lead-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .lead-card.active { border-left: 6px solid var(--primary); background: #f0f7ff; }
-        .lead-title { font-size: 17px; color: var(--primary); font-weight: bold; margin-bottom: 4px; display: block; text-decoration: none; }
-        .lead-url { font-size: 12px; color: var(--success); margin-bottom: 10px; word-break: break-all; }
-        .lead-snippet { font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 15px; }
-        .trade-badge { position: absolute; top: 18px; right: 18px; font-size: 10px; background: #fff7ed; color: #c2410c; padding: 2px 8px; border-radius: 4px; border: 1px solid #ffedd5; }
-
-        /* 工具箱 */
-        .tool-kit { display: flex; gap: 8px; flex-wrap: wrap; }
-        .tool-btn { font-size: 11px; padding: 6px 10px; border-radius: 6px; text-decoration: none; border: 1px solid #ddd; background: #fff; color: #64748b; }
-        .tool-btn:hover { background: #f8fafc; border-color: var(--primary); color: var(--primary); }
-        .btn-hot { background: #fff7ed; color: #c2410c; border-color: #fdba74; font-weight: bold; }
+        .lead-title { font-size: 16px; color: var(--primary); font-weight: bold; margin-bottom: 8px; }
+        .lead-snippet { font-size: 12px; color: #64748b; line-height: 1.5; }
 
         /* 详情面板 */
         .detail-panel { background: #fff; border-left: 1px solid var(--border); padding: 25px; overflow-y: auto; }
-        .info-block { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin-bottom: 20px; }
-        .email-guess { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 8px; margin-top: 15px; }
-        .template-box { background: #f1f5f9; border: 1px dashed #cbd5e1; padding: 15px; border-radius: 8px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: #334155; position: relative; margin-top: 10px; }
-        .copy-btn { position: absolute; top: 10px; right: 10px; background: var(--primary); color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+        .btn-save { width: 100%; background: var(--success); color: #fff; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 20px; font-size: 15px; transition: 0.2s; }
+        .btn-save:hover { background: #059669; }
+        .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
         
-        #loader { display: none; text-align: center; padding: 40px; color: var(--primary); font-weight: bold; font-size: 14px; }
+        .info-block { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+        .info-block h4 { font-size: 14px; margin-bottom: 8px; color: var(--dark); }
+        .email-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 8px; }
+        
+        #loader { display: none; text-align: center; padding: 20px; color: var(--primary); font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <div class="logo">🎯 SoundLeads</div>
-        <div class="status-tag">● 实战增强版 | 已连接</div>
-        <div class="tip-box">
-            <b>刘总获客流程：</b><br><br>
-            1. <b>搜</b>：输入 "Speaker importer"<br>
-            2. <b>筛</b>：找带“进出口记录”的客户<br>
-            3. <b>挖</b>：先查海关，再LinkedIn找人<br>
-            4. <b>联</b>：参考“猜测邮箱”进行投递
+        <div class="logo">🎯 SoundLeads Pro</div>
+        <div class="status-tag">● 云端同步模式已开启</div>
+        <div class="version-info">
+            <p>刘总专属获客引擎 v2.0</p>
+            <p>· 数据直连 Google Sheets</p>
+            <p>· 全球搜索引擎同步</p>
         </div>
     </div>
 
     <div class="main">
         <div class="top-bar">
-            <input type="text" id="searchInput" placeholder="例如: waterproof speaker importer Germany">
-            <button class="btn-search" onclick="executeSearch()">全网扫描</button>
+            <input type="text" id="searchInput" placeholder="请输入获客关键词 (例如: speaker distributor UK)">
+            <button class="btn-search" onclick="executeSearch()">开始全网扫描</button>
         </div>
-
-        <div id="loader">🚀 正在为您穿透广告干扰，提取精准线索...</div>
-
+        <div id="loader">🚀 正在通过 AI 引擎扫描全球线索...</div>
         <div class="content">
-            <div id="results-list">
-                <div style="text-align:center; margin-top:100px; color:#94a3b8;">
-                    刘总，输入关键词开启“开盒”模式
-                </div>
-            </div>
-
-            <div class="detail-panel" id="rightPanel">
-                <h3 style="margin-bottom:20px;">🔍 深度获客情报</h3>
-                <div id="intelligenceSpace">
-                    <p style="color:#64748b; font-size:14px;">选中线索，在此自动生成背调情报与开发建议。</p>
-                </div>
+            <div id="results-list"></div>
+            <div class="detail-panel" id="intelSpace">
+                <p style="text-align:center; color:#94a3b8; margin-top:100px;">选中左侧客户卡片<br>进行深度分析与入库</p>
             </div>
         </div>
     </div>
 
     <script>
-        const API_KEY = '13235c710dc8576425911811f046a2ab0e115639';
+        // --- 核心配置区 ---
+        const SERPER_KEY = '13235c710dc8576425911811f046a2ab0e115639'; 
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec'; 
+        // --- 核心配置区 ---
 
         async function executeSearch() {
             const query = document.getElementById('searchInput').value;
             if(!query) return;
-
             const list = document.getElementById('results-list');
             const loader = document.getElementById('loader');
             
@@ -103,17 +89,13 @@
             try {
                 const response = await fetch('https://google.serper.dev/search', {
                     method: 'POST',
-                    headers: { 'X-API-KEY': API_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        q: query + " manufacturer -JBL -Sony -Amazon",
-                        num: 15
-                    })
+                    headers: { 'X-API-KEY': SERPER_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ q: query, num: 15 })
                 });
-
                 const data = await response.json();
                 renderResults(data.organic || []);
             } catch (e) {
-                list.innerHTML = `<div style="color:red; padding:20px;">❌ 访问异常，请检查网络或API Key</div>`;
+                list.innerHTML = '<p style="padding:20px; color:red;">搜索异常，请检查网络或 API Key</p>';
             } finally {
                 loader.style.display = 'none';
             }
@@ -121,25 +103,15 @@
 
         function renderResults(items) {
             const list = document.getElementById('results-list');
-            if(items.length === 0) { list.innerHTML = '未搜索到结果'; return; }
-
             items.forEach((item) => {
                 const domain = new URL(item.link).hostname.replace('www.', '');
                 const card = document.createElement('div');
                 card.className = 'lead-card';
-                const isImporter = /import|shipment|distributor|wholesale/i.test(item.snippet + item.title);
-                
                 card.onclick = () => selectLead(item, domain);
                 card.innerHTML = `
-                    ${isImporter ? '<span class="trade-badge">🔍 发现进出口记录</span>' : ''}
-                    <a href="${item.link}" target="_blank" class="lead-title" onclick="event.stopPropagation()">${item.title}</a>
-                    <div class="lead-url">${item.link}</div>
-                    <p class="lead-snippet">${item.snippet}</p>
-                    <div class="tool-kit">
-                        <a class="tool-btn btn-hot" href="https://www.importyeti.com/search?q=${domain}" target="_blank" onclick="event.stopPropagation()">🚢 查海关数据</a>
-                        <a class="tool-btn" href="https://www.linkedin.com/search/results/people/?keywords=${domain}%20purchasing" target="_blank" onclick="event.stopPropagation()">👤 搜负责人</a>
-                        <a class="tool-btn" href="https://www.google.com/search?q=site:${domain}+email" target="_blank" onclick="event.stopPropagation()">📧 挖邮箱</a>
-                    </div>
+                    <div class="lead-title">${item.title}</div>
+                    <div class="lead-snippet">${item.snippet.substring(0, 120)}...</div>
+                    <div style="font-size:11px; color:var(--primary); margin-top:8px;">🌐 ${domain}</div>
                 `;
                 list.appendChild(card);
             });
@@ -149,47 +121,65 @@
             document.querySelectorAll('.lead-card').forEach(c => c.classList.remove('active'));
             event.currentTarget.classList.add('active');
 
-            const intelSpace = document.getElementById('intelligenceSpace');
-            
+            const intelSpace = document.getElementById('intelSpace');
+            const topEmail = `info@${domain}`;
+
             intelSpace.innerHTML = `
+                <button class="btn-save" id="saveBtn" onclick="saveToSheet('${item.title.replace(/'/g, "\\'")}', '${domain}', '${topEmail}')">
+                    💾 一键录入线索库 (Google Sheet)
+                </button>
+
                 <div class="info-block">
-                    <h4 style="color:#1a73e8; margin-bottom:10px;">📊 客户背景</h4>
-                    <p style="font-size:13px;">官网域名: <b>${domain}</b></p>
-                    <p style="font-size:12px; color:#64748b; margin-top:5px;">${item.snippet}</p>
+                    <h4>📊 客户背调分析</h4>
+                    <p style="font-size:13px; color:#64748b;">${item.snippet}</p>
                 </div>
 
-                <div class="email-guess">
-                    <h5 style="color:#166534; font-size:13px; margin-bottom:8px;">💡 邮箱格式猜测 (直接投递成功率高):</h5>
-                    <ul style="font-size:12px; color:#166534; list-style:none; line-height:1.8;">
-                        <li>• info@${domain}</li>
-                        <li>• purchasing@${domain}</li>
-                        <li>• sourcing@${domain}</li>
-                        <li>• office@${domain}</li>
-                    </ul>
+                <div class="email-box">
+                    <h5 style="color:#166534; font-size:13px; margin-bottom:5px;">💡 建议投递邮箱:</h5>
+                    <p style="font-size:14px; font-weight:bold; color:#166534;">${topEmail}</p>
+                    <p style="font-size:11px; color:#166534; margin-top:5px;">或尝试: purchasing@${domain}</p>
                 </div>
 
-                <h4 style="margin-top:20px; font-size:14px;">📧 刘总工厂版开发信:</h4>
-                <div class="template-box" id="templateText">
-                    <button class="copy-btn" onclick="copyTemplate()">复制</button>
-Subject: Specialized Audio Solutions / R&D Support from Shenzhen Factory
-
-Hi Purchasing Team,
-
-I noticed ${item.title}'s professional presence in the audio market.
-
-I am Liu, representing a dedicated R&D and manufacturing facility in Shenzhen. We specialize in high-performance speaker modules (waterproof/DSP solutions).
-
-Unlike general traders, we offer direct factory R&D support to ensure quality and shorten your development cycle.
-
-Best regards,
-Liu Zong
+                <div style="margin-top:20px; font-size:12px; color:#94a3b8; text-align:center;">
+                    数据将自动同步至 1sqFJM... 表格
                 </div>
             `;
         }
 
-        function copyTemplate() {
-            const text = document.getElementById('templateText').innerText.replace('复制', '');
-            navigator.clipboard.writeText(text).then(() => alert('已复制，刘总直接去发邮件吧！'));
+        async function saveToSheet(company, domain, email) {
+            const btn = document.getElementById('saveBtn');
+            const originalText = btn.innerText;
+            
+            btn.innerText = '⏳ 正在同步至云端...';
+            btn.disabled = true;
+
+            try {
+                // 使用 no-cors 模式确保在任何环境下都能一键入库
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        company: company,
+                        country: domain,
+                        email: email
+                    })
+                });
+                
+                btn.innerText = '✅ 录入成功！';
+                btn.style.background = '#059669';
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = '#10b981';
+                    btn.disabled = false;
+                }, 2000);
+
+            } catch (e) {
+                alert('同步失败，请检查 GAS URL 设置');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         }
     </script>
 </body>
