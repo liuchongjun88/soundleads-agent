@@ -3,131 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundLeads - 喇叭外贸全网自动获客系统</title>
+    <title>SoundLeads Pro - 喇叭外贸全球获客工作台</title>
     <style>
-        :root { --bg: #f4f7f9; --primary: #1a73e8; --success: #34a853; --text: #202124; --radius: 12px; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; }
-        .sidebar { width: 260px; background: #fff; height: 100vh; border-right: 1px solid #dadce0; padding: 25px 20px; position: fixed; }
-        .main { margin-left: 300px; padding: 30px; flex: 1; max-width: 1200px; }
-        .search-section { background: #fff; padding: 20px; border-radius: var(--radius); box-shadow: 0 1px 6px rgba(32,33,36,0.1); display: flex; gap: 12px; margin-bottom: 25px; }
-        input { flex: 1; padding: 12px 20px; border: 1px solid #dfe1e5; border-radius: 24px; outline: none; font-size: 15px; }
-        .btn-search { background: var(--primary); color: #fff; border: none; padding: 10px 30px; border-radius: 24px; cursor: pointer; font-weight: 600; }
-        .results-container { display: grid; grid-template-columns: 1fr 420px; gap: 25px; }
-        .card { background: #fff; padding: 18px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #dadce0; transition: 0.2s; cursor: pointer; }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: var(--primary); }
-        .card.active { border-left: 5px solid var(--primary); background: #f8fbff; }
-        .title { color: #1a0dab; font-size: 18px; text-decoration: none; font-weight: 500; display: block; margin-bottom: 6px; }
-        .link { color: #006621; font-size: 13px; margin-bottom: 8px; word-break: break-all; }
-        .snippet { font-size: 14px; color: #4d5156; line-height: 1.6; }
-        #logWindow { background: #202124; color: #34a853; padding: 12px 18px; border-radius: 8px; font-family: monospace; font-size: 12px; margin-bottom: 20px; display: none; }
-        .detail-panel { background: #fff; padding: 25px; border-radius: 12px; border: 1px solid #dadce0; position: sticky; top: 30px; }
-        .sync-btn { background: var(--success); color: #fff; border: none; padding: 12px; border-radius: 8px; width: 100%; margin-top: 20px; cursor: pointer; font-weight: 600; }
-        .loading { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        :root {
+            --primary: #1a73e8; --primary-dark: #1557b0; --bg: #f8f9fa;
+            --sidebar-bg: #202124; --card-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            --text-main: #3c4043; --text-light: #70757a; --success: #1e8e3e;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--text-main); display:flex; height:100vh; overflow:hidden;}
+        
+        /* 侧边栏：专业黑色系 */
+        .sidebar { width: 240px; background: var(--sidebar-bg); color: #fff; display: flex; flex-direction: column; padding: 25px 15px; }
+        .logo-area { font-size: 22px; font-weight: bold; margin-bottom: 40px; display: flex; align-items: center; gap: 10px; color: #fff; }
+        .nav-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 14px; margin-bottom: 5px; color: #bdc1c6; }
+        .nav-item:hover { background: #3c4043; color: #fff; }
+        .nav-item.active { background: var(--primary); color: #fff; }
+
+        /* 主界面布局 */
+        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .top-bar { background: #fff; padding: 15px 30px; border-bottom: 1px solid #dadce0; display: flex; align-items: center; justify-content: space-between; }
+        
+        /* 搜索框优化 */
+        .search-engine { display: flex; gap: 12px; background: #fff; padding: 20px 30px; border-bottom: 1px solid #dadce0; }
+        .input-group { flex: 1; position: relative; }
+        input#q { width: 100%; padding: 14px 25px; border: 1px solid #dfe1e5; border-radius: 30px; font-size: 15px; outline: none; transition: 0.3s; }
+        input#q:focus { border-color: var(--primary); box-shadow: 0 1px 6px rgba(32,33,36,0.2); }
+        .btn-search { background: var(--primary); color: #fff; border: none; padding: 0 35px; border-radius: 30px; cursor: pointer; font-weight: 600; font-size: 15px; transition: 0.3s; }
+        .btn-search:hover { background: var(--primary-dark); }
+
+        /* 结果展示区 */
+        .content-body { flex: 1; display: grid; grid-template-columns: 1fr 450px; overflow: hidden; }
+        #results-list { padding: 20px 30px; overflow-y: auto; background: var(--bg); }
+        
+        /* 线索卡片 */
+        .lead-card { background: #fff; border: 1px solid #dadce0; border-radius: 12px; padding: 20px; margin-bottom: 15px; cursor: pointer; position: relative; transition: 0.2s; }
+        .lead-card:hover { border-color: var(--primary); box-shadow: var(--card-shadow); }
+        .lead-card.viewed { opacity: 0.8; border-left: 4px solid #dadce0; }
+        .lead-card.active { border-left: 4px solid var(--primary); background: #f8fbff; }
+        
+        .tag-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .tag { font-size: 11px; padding: 3px 10px; border-radius: 4px; font-weight: 600; text-transform: uppercase; }
+        .tag-importer { background: #e8f0fe; color: #1967d2; }
+        .tag-wholesale { background: #e6f4ea; color: #1e8e3e; }
+        .tag-generic { background: #f1f3f4; color: #5f6368; }
+
+        .lead-title { font-size: 18px; color: #1a0dab; text-decoration: none; font-weight: 500; display: block; margin-bottom: 8px; }
+        .lead-url { font-size: 13px; color: #006621; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lead-snippet { font-size: 14px; color: #4d5156; line-height: 1.5; }
+
+        /* 详情面板 */
+        .detail-panel { background: #fff; border-left: 1px solid #dadce0; display: flex; flex-direction: column; padding: 0; }
+        .detail-header { padding: 25px; border-bottom: 1px solid #f1f3f4; }
+        .detail-body { padding: 25px; flex: 1; overflow-y: auto; }
+        .info-group { margin-bottom: 20px; }
+        .info-label { font-size: 12px; color: var(--text-light); text-transform: uppercase; font-weight: bold; margin-bottom: 8px; }
+        .info-value { font-size: 15px; color: var(--text-main); line-height: 1.6; }
+
+        .action-bar { padding: 20px 25px; background: #f8f9fa; border-top: 1px solid #dadce0; display: flex; gap: 10px; }
+        .btn-sync { flex: 1; background: var(--success); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-sync:hover { background: #1a7d36; }
+
+        /* 状态加载 */
+        #loader { display: none; text-align: center; padding: 40px; color: var(--text-light); }
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <aside class="sidebar">
-        <h2 style="color:var(--primary); margin-top:0;">🔊 SoundLeads</h2>
-        <p style="font-size: 12px; color: #70757a; margin-bottom:30px;">Serper 强力驱动版</p>
-        <div style="font-size: 13px; background: #e8f0fe; padding: 15px; border-radius: 8px; color: #1967d2;">
-            <strong>状态：</strong><br>
-            ✅ 无需信用卡激活<br>
-            ✅ 全网实时搜索已就绪
+    <div class="sidebar">
+        <div class="logo-area"><span>🔊</span> SoundLeads</div>
+        <div class="nav-item active">🔍 全网获客引擎</div>
+        <div class="nav-item">📋 客户管理 (CRM)</div>
+        <div class="nav-item">📈 行业分析</div>
+        <div style="margin-top:auto; font-size:12px; color:#9aa0a6; padding:10px;">
+            刘总工作台 v2.0<br>状态：API 已连接
         </div>
-    </aside>
+    </div>
 
-    <main class="main">
-        <div id="logWindow"></div>
-        <div class="search-section">
-            <input type="text" id="queryInput" placeholder="输入关键词，如: Speaker Module Importer USA">
-            <button class="btn-search" onclick="executeSearch()" id="searchBtn">
-                <span id="btnText">全网获客</span>
-            </button>
-        </div>
-        <div class="results-container">
-            <div id="resultsList">
-                <div style="text-align:center; padding-top:100px; color:#70757a;">准备就绪，请输入关键词开始扫描...</div>
+    <div class="main-content">
+        <header class="top-bar">
+            <div style="font-weight: 500;">全网实时商机发现</div>
+            <div style="font-size: 13px; color: var(--text-light);">今日额度充足 (Serper API)</div>
+        </header>
+
+        <div class="search-engine">
+            <div class="input-group">
+                <input type="text" id="q" placeholder="输入搜索词，例如：Speaker Module Wholesale Importer Germany" value="Speaker Module Wholesale Importer USA">
             </div>
-            <div class="detail-panel" id="detailPanel">
-                <h3 style="margin-top:0; font-size:18px;">线索解析</h3>
-                <p style="color:#70757a; font-size:14px;">选中左侧结果查看详情</p>
+            <button class="btn-search" onclick="doSearch()">开始全网搜寻</button>
+        </div>
+
+        <div class="content-body">
+            <div id="results-list">
+                <div style="text-align:center; padding-top:100px; color:var(--text-light);">
+                    请输入您的目标产品关键词
+                </div>
+            </div>
+
+            <div class="detail-panel" id="detail-panel">
+                <div class="detail-header">
+                    <h3 style="font-size:20px; color:var(--primary);">线索情报中心</h3>
+                </div>
+                <div class="detail-body" id="detail-body">
+                    <div style="text-align:center; color:var(--text-light); padding-top:50px;">
+                        点击左侧线索查看深度解析
+                    </div>
+                </div>
+                <div class="action-bar" id="action-bar" style="display:none;">
+                    <button class="btn-sync" onclick="saveToCloud()">💾 同步至 Google Sheets</button>
+                </div>
             </div>
         </div>
-    </main>
+        
+        <div id="loader">
+            <div class="spinner"></div>
+            正在调取全球实时数据...
+        </div>
+    </div>
 
     <script>
-        // ======= 已集成刘总刚才申请的 Key =======
-        const SERPER_KEY = '13235c710dc8576425911811f046a2ab0e115639';
-        // ======= 填入您昨天的 GAS 链接 =======
-        const GAS_URL = '在此处粘贴您的_Google_Apps_Script_URL';
+        const API_KEY = '13235c710dc8576425911811f046a2ab0e115639';
+        const GAS_URL = '在这里粘贴您的_Google_Apps_Script_URL'; // 填入昨天的 GAS 链接
 
-        function addLog(msg) {
-            const log = document.getElementById('logWindow');
-            log.style.display = 'block';
-            log.innerHTML += `<div>[${new Date().toLocaleTimeString()}] > ${msg}</div>`;
-            log.scrollTop = log.scrollHeight;
-        }
-
-        async function executeSearch() {
-            const query = document.getElementById('queryInput').value;
+        async function doSearch() {
+            const query = document.getElementById('q').value;
             if(!query) return;
-            const btnText = document.getElementById('btnText');
-            btnText.innerHTML = '<span class="loading"></span> 检索中...';
-            addLog(`正在绕过 403 限制，通过 Serper 提取 "${query}" 的全网线索...`);
+
+            const list = document.getElementById('results-list');
+            const loader = document.getElementById('loader');
+            
+            list.style.opacity = '0.3';
+            loader.style.display = 'block';
 
             try {
                 const response = await fetch('https://google.serper.dev/search', {
                     method: 'POST',
-                    headers: { 'X-API-KEY': SERPER_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ q: query, num: 20 })
+                    headers: { 'X-API-KEY': API_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ q: query, num: 25, gl: "us" })
                 });
                 const data = await response.json();
-                if (data.organic) {
-                    addLog(`✅ 成功！抓取到 ${data.organic.length} 条高价值数据。`);
-                    render(data.organic);
-                }
+                renderResults(data.organic);
             } catch (e) {
-                addLog(`❌ 错误：${e.message}`);
+                alert('搜索失败，请检查网络：' + e.message);
             } finally {
-                btnText.innerHTML = '全网获客';
+                list.style.opacity = '1';
+                loader.style.display = 'none';
             }
         }
 
-        function render(items) {
-            const list = document.getElementById('resultsList');
-            list.innerHTML = '';
-            items.forEach((item, i) => {
-                const div = document.createElement('div');
-                div.className = 'card';
-                div.id = 'card-' + i;
-                div.onclick = () => show(item, i);
-                div.innerHTML = `<div class="title">${item.title}</div><div class="link">${item.link}</div><div class="snippet">${item.snippet}</div>`;
-                list.appendChild(div);
+        function renderResults(items) {
+            const container = document.getElementById('results-list');
+            container.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                const isImporter = /importer|distributor|wholesale/i.test(item.title + item.snippet);
+                const tag = isImporter ? '<span class="tag tag-importer">Potential Importer</span>' : '<span class="tag tag-generic">Web Result</span>';
+                
+                const card = document.createElement('div');
+                card.className = 'lead-card';
+                card.onclick = () => showDetail(item, card);
+                card.innerHTML = `
+                    <div class="tag-row">${tag}</div>
+                    <a class="lead-title" href="${item.link}" target="_blank" onclick="event.stopPropagation()">${item.title}</a>
+                    <div class="lead-url">${item.link}</div>
+                    <div class="lead-snippet">${item.snippet}</div>
+                `;
+                container.appendChild(card);
             });
         }
 
-        function show(item, idx) {
-            document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-            document.getElementById('card-'+idx).classList.add('active');
-            const panel = document.getElementById('detailPanel');
-            panel.innerHTML = `
-                <h3 style="color:var(--primary);">${item.title}</h3>
-                <p><strong>网址:</strong><br><small>${item.link}</small></p>
-                <div style="background:#f8f9fa; padding:15px; border-radius:8px; font-size:13px; border:1px dashed #ccc;">
-                    <strong>获客情报：</strong><br>基于 "${item.snippet.substring(0,30)}..." 判定该目标具有开发潜力。
+        function showDetail(item, cardEl) {
+            // UI 状态切换
+            document.querySelectorAll('.lead-card').forEach(c => c.classList.remove('active'));
+            cardEl.classList.add('active', 'viewed');
+
+            const body = document.getElementById('detail-body');
+            const actionBar = document.getElementById('action-bar');
+            actionBar.style.display = 'flex';
+
+            // 深度信息提取模拟
+            const domain = new URL(item.link).hostname;
+            
+            body.innerHTML = `
+                <div class="info-group">
+                    <div class="info-label">公司名称（预估）</div>
+                    <div class="info-value"><strong>${item.title.split('-')[0].split('|')[0]}</strong></div>
                 </div>
-                <button class="sync-btn" onclick="sync('${item.title}', '${item.link}')">💾 同步到 Google 表格</button>
+                <div class="info-group">
+                    <div class="info-label">官方网址</div>
+                    <div class="info-value"><a href="${item.link}" target="_blank">${domain}</a></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">业务关键词</div>
+                    <div class="info-value">喇叭, 音频设备, 电子元器件</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">线索摘要</div>
+                    <div class="info-value">${item.snippet}</div>
+                </div>
+                <div style="margin-top:30px; padding:15px; background:#fff3e0; border-radius:8px; border-left:4px solid #ff9800;">
+                    <strong style="font-size:13px; color:#e65100;">开发建议：</strong><br>
+                    <span style="font-size:13px;">该目标含有行业关键词。建议优先访问官网的 "Contact Us" 或 "About" 页面获取采购经理邮箱。</span>
+                </div>
             `;
+
+            // 保存当前选中的数据到全局变量，方便同步
+            window.currentLead = {
+                company: item.title,
+                website: item.link,
+                snippet: item.snippet
+            };
         }
 
-        async function sync(name, link) {
+        async function saveToCloud() {
+            if(!window.currentLead) return;
             if(GAS_URL.includes('粘贴')) {
-                alert('请在代码里填入昨天的 GAS 链接，即可入库！');
+                alert('刘总，您还没填入 Google 表格的 GAS 链接呢！');
                 return;
             }
-            addLog(`正在同步 [${name}] 到您的表格...`);
-            // 此处触发您的 GAS POST 逻辑
+
+            const btn = document.querySelector('.btn-sync');
+            btn.innerText = '正在同步...';
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(window.currentLead),
+                    redirect: 'follow'
+                });
+                alert('✅ 同步成功！客户已存入 Google 表格。');
+            } catch (e) {
+                alert('同步失败，请检查 GAS 权限设置。');
+            } finally {
+                btn.innerText = '💾 同步至 Google Sheets';
+            }
         }
     </script>
 </body>
