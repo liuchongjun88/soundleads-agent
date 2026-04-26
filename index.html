@@ -2,19 +2,17 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>SoundLeads Pro - 刘总工厂版获客系统 (3.0 终极稳定版)</title>
+    <title>SoundLeads Pro - 刘总工厂版获客系统 (直达优化版)</title>
     <style>
         :root { --primary: #1a73e8; --dark: #1e293b; --success: #10b981; --bg: #f8fafc; --border: #e2e8f0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; }
         
-        /* 侧边栏 */
         .sidebar { width: 260px; background: var(--dark); color: #fff; padding: 25px 20px; display: flex; flex-direction: column; }
         .logo { font-size: 22px; font-weight: bold; color: #60a5fa; margin-bottom: 10px; }
         .status-tag { font-size: 11px; background: rgba(16, 185, 129, 0.2); color: var(--success); padding: 4px 8px; border-radius: 4px; margin-bottom: 20px; }
         .nav-info { font-size: 12px; color: #94a3b8; line-height: 1.8; border-top: 1px solid #334155; padding-top: 20px; }
 
-        /* 主体 */
         .main { flex: 1; display: flex; flex-direction: column; }
         .top-bar { background: #fff; padding: 15px 30px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; }
         input { flex: 1; padding: 12px 25px; border-radius: 30px; border: 1px solid var(--border); outline: none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); }
@@ -22,7 +20,6 @@
 
         .content { flex: 1; display: grid; grid-template-columns: 1fr 450px; overflow: hidden; }
         
-        /* 线索列表 */
         #results-list-container { padding: 20px; overflow-y: auto; background: #f1f5f9; display: flex; flex-direction: column; }
         #results-list { flex: 1; }
         .lead-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
@@ -30,16 +27,13 @@
         .lead-card.active { border-left: 6px solid var(--primary); background: #f0f7ff; }
         .card-title { color: var(--primary); font-weight: bold; font-size: 16px; margin-bottom: 8px; }
         
-        /* 工具条 */
         .tool-bar { display: flex; gap: 8px; margin-top: 12px; }
         .tool-btn { font-size: 11px; padding: 5px 12px; border-radius: 6px; text-decoration: none; border: 1px solid #cbd5e1; background: #fff; color: #64748b; transition: 0.2s; }
         .tool-btn:hover { border-color: var(--primary); color: var(--primary); background: #f8fafc; }
 
-        /* 加载更多按钮 */
         .load-more-btn { background: #fff; border: 1px solid var(--primary); color: var(--primary); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px 0 30px; transition: 0.2s; }
         .load-more-btn:hover { background: var(--primary); color: #fff; }
 
-        /* 右侧面板 */
         .detail-panel { background: #fff; border-left: 1px solid var(--border); padding: 25px; overflow-y: auto; }
         .btn-save { width: 100%; background: var(--success); color: #fff; border: none; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 25px; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.2); }
         .btn-save:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
@@ -58,7 +52,7 @@
         <div class="nav-info">
             <b>操作流程：</b><br>
             1. 全网扫描线索<br>
-            2. 查海关/指令挖邮箱<br>
+            2. 查海关/LinkedIn找人<br>
             3. 一键同步至 Google Sheet<br>
             4. 复制模板发送开发信
         </div>
@@ -143,8 +137,8 @@
                     <div style="font-size:12px; color:#64748b;">🌐 ${domain}</div>
                     <div class="tool-bar">
                         <a class="tool-btn" href="https://www.importyeti.com/search?q=${domain}" target="_blank" onclick="event.stopPropagation()">🚢 海关数据</a>
-                        <a class="tool-btn" href="https://www.google.com/search?q=site:${domain}+%22%40${domain}%22+OR+email+OR+contact" target="_blank" onclick="event.stopPropagation()">🔍 挖掘邮箱</a>
-                        <a class="tool-btn" href="https://www.google.com/search?q=site:linkedin.com/in/+%22${domain}%22+purchasing+OR+sourcing+OR+manager" target="_blank" onclick="event.stopPropagation()">👤 找负责人</a>
+                        <a class="tool-btn" href="https://rocketreach.co/search?keyword=${domain}" target="_blank" onclick="event.stopPropagation()">🔍 挖掘邮箱</a>
+                        <a class="tool-btn" href="https://www.linkedin.com/search/results/people/?keywords=${domain}%20purchasing" target="_blank" onclick="event.stopPropagation()">👤 找负责人</a>
                     </div>
                 `;
                 list.appendChild(card);
