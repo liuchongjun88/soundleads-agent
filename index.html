@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>SoundLeads Pro - 刘总工厂版获客系统 (2.0 增强版)</title>
+    <title>SoundLeads Pro - 刘总工厂版获客系统 (3.0 终极稳定版)</title>
     <style>
         :root { --primary: #1a73e8; --dark: #1e293b; --success: #10b981; --bg: #f8fafc; --border: #e2e8f0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -58,7 +58,7 @@
         <div class="nav-info">
             <b>操作流程：</b><br>
             1. 全网扫描线索<br>
-            2. 查海关/Apollo找人<br>
+            2. 查海关/指令挖邮箱<br>
             3. 一键同步至 Google Sheet<br>
             4. 复制模板发送开发信
         </div>
@@ -85,7 +85,7 @@
         const SERPER_KEY = '13235c710dc8576425911811f046a2ab0e115639';
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbxE5ThwSihLFCw0XwYLgAITA3eDQAx_5t0DMz4K1eLcY3qSidz7evptbpvGFEtdPDd_9A/exec';
         
-        let currentPage = 1; // 记录当前页码
+        let currentPage = 1;
 
         async function executeSearch(isLoadMore = false) {
             const query = document.getElementById('searchInput').value;
@@ -111,14 +111,13 @@
                     headers: { 'X-API-KEY': SERPER_KEY, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         q: query, 
-                        num: 20,           // 每次抓取20条
-                        page: currentPage  // 传递当前页码实现翻页
+                        num: 20,
+                        page: currentPage
                     })
                 });
                 const data = await response.json();
                 renderResults(data.organic || [], isLoadMore);
                 
-                // 如果有结果，显示“加载更多”按钮
                 if(data.organic && data.organic.length > 0) {
                     loadMoreBtn.style.display = 'block';
                     loadMoreBtn.innerText = '👇 加载更多全球线索';
@@ -143,9 +142,9 @@
                     <div class="card-title">${item.title}</div>
                     <div style="font-size:12px; color:#64748b;">🌐 ${domain}</div>
                     <div class="tool-bar">
-                        <a class="tool-btn" href="https://www.importyeti.com/search?q=${domain}" target="_blank" onclick="event.stopPropagation()">🚢 海关</a>
-                        <a class="tool-btn" href="https://www.linkedin.com/search/results/people/?keywords=${domain}" target="_blank" onclick="event.stopPropagation()">👤 找人</a>
-                        <a class="tool-btn" href="https://www.apollo.io/companies/${domain}" target="_blank" onclick="event.stopPropagation()">🔍 挖邮箱/电话</a>
+                        <a class="tool-btn" href="https://www.importyeti.com/search?q=${domain}" target="_blank" onclick="event.stopPropagation()">🚢 海关数据</a>
+                        <a class="tool-btn" href="https://www.google.com/search?q=site:${domain}+%22%40${domain}%22+OR+email+OR+contact" target="_blank" onclick="event.stopPropagation()">🔍 挖掘邮箱</a>
+                        <a class="tool-btn" href="https://www.google.com/search?q=site:linkedin.com/in/+%22${domain}%22+purchasing+OR+sourcing+OR+manager" target="_blank" onclick="event.stopPropagation()">👤 找负责人</a>
                     </div>
                 `;
                 list.appendChild(card);
